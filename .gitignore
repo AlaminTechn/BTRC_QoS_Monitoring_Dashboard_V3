@@ -1,0 +1,18 @@
+# Environment
+.env
+
+# Data files
+/poc_data_v2.8/
+/geodata/
+
+# Python
+__pycache__/
+*.pyc
+
+# Metabase
+metabase.db/
+
+# IDE
+.idea/
+.vscode/
+*.swp

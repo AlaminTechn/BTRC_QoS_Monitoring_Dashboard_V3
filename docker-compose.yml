@@ -1,0 +1,80 @@
+# =============================================================================
+# BTRC QoS Monitoring Dashboard V3 - Docker Compose
+# Services: TimescaleDB + Metabase + Helical Insight CE
+# =============================================================================
+
+services:
+  # ─── TimescaleDB (shared data store) ──────────────────────────────────────
+  timescaledb:
+    image: timescale/timescaledb-ha:pg15-latest
+    container_name: btrc-v3-timescaledb
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: btrc_admin
+      POSTGRES_PASSWORD: btrc_poc_2026
+      POSTGRES_DB: btrc_qos_poc
+    ports:
+      - "5433:5432"
+    volumes:
+      - timescale_data:/home/postgres/pgdata/data
+      - ./docker/timescaledb/init.sql:/docker-entrypoint-initdb.d/01-init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U btrc_admin -d btrc_qos_poc"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - btrc-v3
+
+  # ─── Metabase (BI Tool #1) ────────────────────────────────────────────────
+  metabase:
+    image: metabase/metabase:latest
+    container_name: btrc-v3-metabase
+    restart: unless-stopped
+    environment:
+      # Metabase internal database (metadata)
+      MB_DB_TYPE: postgres
+      MB_DB_DBNAME: metabase_meta
+      MB_DB_PORT: 5432
+      MB_DB_USER: btrc_admin
+      MB_DB_PASS: btrc_poc_2026
+      MB_DB_HOST: timescaledb
+      # Metabase settings
+      MB_JETTY_PORT: 3000
+      JAVA_TIMEZONE: Asia/Dhaka
+    ports:
+      - "3000:3000"
+    volumes:
+      - metabase_data:/metabase-data
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+    networks:
+      - btrc-v3
+
+  # ─── Helical Insight CE (BI Tool #2) ──────────────────────────────────────
+  # DISABLED: Helical Insight CE build failed.
+  #   - Community Edition has no official Docker image
+  #   - GitHub source has broken Maven dependencies
+  #   - Enterprise Edition Docker requires contacting sales@helicalinsight.com
+  # helical:
+  #   build:
+  #     context: ./docker/helical
+  #     dockerfile: Dockerfile
+  #   container_name: btrc-v3-helical
+  #   ports:
+  #     - "8085:8080"
+
+volumes:
+  timescale_data:
+  metabase_data:
+
+networks:
+  btrc-v3:
+    driver: bridge

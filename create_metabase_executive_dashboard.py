@@ -57,14 +57,14 @@ E1_1_SQL = """
 SELECT
     ROUND(AVG(download_speed_mbps)::numeric, 2) as "Avg Download (Mbps)"
 FROM ts_qos_measurements
-WHERE timestamp >= NOW() - INTERVAL '30 days'
+WHERE timestamp >= (SELECT MAX(timestamp) FROM ts_qos_measurements) - INTERVAL '30 days'
 """
 
 E1_2_SQL = """
 SELECT
     ROUND(AVG(upload_speed_mbps)::numeric, 2) as "Avg Upload (Mbps)"
 FROM ts_qos_measurements
-WHERE timestamp >= NOW() - INTERVAL '30 days'
+WHERE timestamp >= (SELECT MAX(timestamp) FROM ts_qos_measurements) - INTERVAL '30 days'
 """
 
 E1_3_SQL = """
@@ -75,7 +75,7 @@ SELECT
         2
     ) as "Service Availability (%)"
 FROM ts_qos_measurements
-WHERE timestamp >= NOW() - INTERVAL '30 days'
+WHERE timestamp >= (SELECT MAX(timestamp) FROM ts_qos_measurements) - INTERVAL '30 days'
 """
 
 E1_5_SQL = """
@@ -84,7 +84,7 @@ SELECT
     ROUND(AVG(download_speed_mbps)::numeric, 2) as "Download Speed",
     ROUND(AVG(upload_speed_mbps)::numeric, 2) as "Upload Speed"
 FROM ts_qos_measurements
-WHERE timestamp >= NOW() - INTERVAL '12 months'
+WHERE timestamp >= (SELECT MAX(timestamp) FROM ts_qos_measurements) - INTERVAL '12 months'
 GROUP BY DATE_TRUNC('month', timestamp)
 ORDER BY "Month"
 """
@@ -101,7 +101,7 @@ JOIN agent_pop_assignments apa ON apa.agent_id = sa.id
 JOIN pops p ON p.id = apa.pop_id
 JOIN geo_districts gd ON gd.id = p.district_id
 JOIN geo_divisions d ON d.id = gd.division_id
-WHERE m.timestamp >= NOW() - INTERVAL '30 days'
+WHERE m.timestamp >= (SELECT MAX(timestamp) FROM ts_qos_measurements) - INTERVAL '30 days'
 GROUP BY d.id, d.name_en
 ORDER BY "Avg Download (Mbps)" DESC
 """
@@ -124,7 +124,7 @@ JOIN agent_pop_assignments apa ON apa.agent_id = sa.id
 JOIN pops p ON p.id = apa.pop_id
 JOIN geo_districts gd ON gd.id = p.district_id
 JOIN geo_divisions d ON d.id = gd.division_id
-WHERE m.timestamp >= NOW() - INTERVAL '30 days'
+WHERE m.timestamp >= (SELECT MAX(timestamp) FROM ts_qos_measurements) - INTERVAL '30 days'
 GROUP BY d.id, d.name_en
 ORDER BY "Avg Download (Mbps)" DESC
 """
@@ -148,7 +148,7 @@ JOIN pops p ON p.id = apa.pop_id
 JOIN isps i ON i.id = p.isp_id
 JOIN geo_districts gd ON gd.id = p.district_id
 JOIN geo_divisions d ON d.id = gd.division_id
-WHERE m.timestamp >= NOW() - INTERVAL '30 days'
+WHERE m.timestamp >= (SELECT MAX(timestamp) FROM ts_qos_measurements) - INTERVAL '30 days'
 GROUP BY d.id, d.name_en
 ORDER BY "Avg Download (Mbps)" DESC
 """
@@ -165,7 +165,7 @@ WITH isp_violations AS (
     FROM isps i
     LEFT JOIN isp_license_categories lc ON lc.id = i.license_category_id
     LEFT JOIN sla_violations v ON v.isp_id = i.id
-        AND v.detection_time >= NOW() - INTERVAL '30 days'
+        AND v.detection_time >= (SELECT MAX(detection_time) FROM sla_violations) - INTERVAL '30 days'
     WHERE i.license_status = 'ACTIVE'
     GROUP BY i.id, i.name_en, lc.name_en
 )
@@ -192,7 +192,7 @@ SELECT
     COALESCE(violation_type, 'Speed') as "Violation Type",
     COUNT(*) as "Count"
 FROM sla_violations
-WHERE detection_time >= NOW() - INTERVAL '30 days'
+WHERE detection_time >= (SELECT MAX(detection_time) FROM sla_violations) - INTERVAL '30 days'
 GROUP BY violation_type
 ORDER BY "Count" DESC
 """
@@ -205,7 +205,7 @@ SELECT
     STRING_AGG(DISTINCT v.violation_type, ', ') as "Violation Types"
 FROM sla_violations v
 JOIN isps i ON i.id = v.isp_id
-WHERE v.detection_time >= NOW() - INTERVAL '30 days'
+WHERE v.detection_time >= (SELECT MAX(detection_time) FROM sla_violations) - INTERVAL '30 days'
 GROUP BY i.id, i.name_en
 ORDER BY "Violations" DESC
 LIMIT 10
@@ -217,7 +217,7 @@ SELECT
     COALESCE(violation_type, 'Speed') as "Violation Type",
     COUNT(*) as "Count"
 FROM sla_violations
-WHERE detection_time >= NOW() - INTERVAL '6 months'
+WHERE detection_time >= (SELECT MAX(detection_time) FROM sla_violations) - INTERVAL '6 months'
 GROUP BY DATE_TRUNC('month', detection_time), violation_type
 ORDER BY "Month", "Violation Type"
 """
@@ -238,7 +238,7 @@ FROM sla_violations v
 JOIN pops p ON p.id = v.pop_id
 JOIN geo_districts gd ON gd.id = p.district_id
 JOIN geo_divisions d ON d.id = gd.division_id
-WHERE v.detection_time >= NOW() - INTERVAL '30 days'
+WHERE v.detection_time >= (SELECT MAX(detection_time) FROM sla_violations) - INTERVAL '30 days'
 GROUP BY d.id, d.name_en
 ORDER BY "Total" DESC
 """
@@ -357,18 +357,63 @@ class MetabaseClient:
             return None
 
     def setup_dashboard_tabs_and_cards(self, dashboard_id, ordered_tabs, cards):
-        """Atomically create tabs and place cards on a dashboard (Metabase v0.47+).
+        """Atomically create tabs and place cards on a dashboard.
 
-        Uses PUT /api/dashboard/{id}/cards which accepts:
-          - ordered_tabs: list of {"id": <negative>, "name": "..."}
-          - cards: list of dashcard defs with negative temp IDs
-        Server assigns real positive IDs on response.
+        Uses PUT /api/dashboard/{id} which accepts both 'tabs' and 'dashcards'
+        in a single request. Metabase v0.50+ requires this approach.
+
+        Steps:
+          1. First PUT with tabs only to create tabs and get real IDs
+          2. Map negative temp tab IDs to real IDs
+          3. Second PUT with real tab IDs in dashcards
         """
-        payload = {"ordered_tabs": ordered_tabs, "cards": cards}
-        resp = self.put(f"/api/dashboard/{dashboard_id}/cards", json=payload)
-        if resp.status_code in (200, 202):
-            print(f"  Dashboard layout set: {len(ordered_tabs)} tabs, {len(cards)} cards")
-            return resp.json()
+        # Step 1: Create tabs first (send with empty dashcards)
+        tab_payload = {
+            "tabs": ordered_tabs,
+            "dashcards": [],
+        }
+        resp = self.put(f"/api/dashboard/{dashboard_id}", json=tab_payload)
+        if resp.status_code != 200:
+            print(f"  Tab creation FAILED ({resp.status_code}): {resp.text[:300]}")
+            return None
+
+        # Step 2: Map negative temp IDs to real IDs
+        result = resp.json()
+        created_tabs = result.get("tabs", [])
+        if not created_tabs:
+            print("  WARNING: No tabs returned. Placing cards without tabs.")
+            # Place cards without tab assignment
+            for card in cards:
+                card.pop("dashboard_tab_id", None)
+        else:
+            # Build mapping: negative temp ID -> real positive ID
+            temp_to_real = {}
+            for orig_tab, created_tab in zip(ordered_tabs, created_tabs):
+                temp_to_real[orig_tab["id"]] = created_tab["id"]
+            print(f"  Tabs created: {len(created_tabs)} "
+                  f"(IDs: {[t['id'] for t in created_tabs]})")
+
+            # Update cards with real tab IDs
+            for card in cards:
+                old_tab_id = card.get("dashboard_tab_id")
+                if old_tab_id in temp_to_real:
+                    card["dashboard_tab_id"] = temp_to_real[old_tab_id]
+
+            # Preserve created tab objects for final PUT
+            ordered_tabs = [{"id": t["id"], "name": t["name"]}
+                            for t in created_tabs]
+
+        # Step 3: Place cards on dashboard with real tab IDs
+        card_payload = {
+            "tabs": ordered_tabs if created_tabs else [],
+            "dashcards": cards,
+        }
+        resp = self.put(f"/api/dashboard/{dashboard_id}", json=card_payload)
+        if resp.status_code == 200:
+            result = resp.json()
+            placed = len(result.get("dashcards", []))
+            print(f"  Dashboard layout set: {len(ordered_tabs)} tabs, {placed} cards")
+            return result
         else:
             print(f"  Layout FAILED ({resp.status_code}): {resp.text[:300]}")
             return None

@@ -16,3 +16,6 @@ metabase.db/
 .idea/
 .vscode/
 *.swp
+.claude/
+/*.log
+/*.claude

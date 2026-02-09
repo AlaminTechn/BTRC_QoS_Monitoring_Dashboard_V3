@@ -1,0 +1,28 @@
+{
+  "49e4c04b-f0f7-4d20-77da-034aa69af687": {
+    "name": "Bangladesh",
+    "url": "http://192.168.100.35:9010/btrc-qos-mapping-assets/files/bgd_divisions.geojson",
+    "region_key": "shapeISO",
+    "region_name": "shapeName"
+  },
+  "1d814613-687d-3f0e-0ef9-4b7668df80ff": {
+    "name": "Bangladesh District",
+    "url": "http://192.168.100.35:9010/btrc-qos-mapping-assets/files/bgd_districts.geojson",
+    "region_key": "shapeName",
+    "region_name": "shapeID"
+  },
+  "us_states": {
+    "name": "United States",
+    "url": "app/assets/geojson/us-states.json",
+    "region_key": "STATE",
+    "region_name": "NAME",
+    "builtin": true
+  },
+  "world_countries": {
+    "name": "World",
+    "url": "app/assets/geojson/world.json",
+    "region_key": "ISO_A2",
+    "region_name": "NAME",
+    "builtin": true
+  }
+}

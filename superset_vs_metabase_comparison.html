@@ -688,6 +688,118 @@
                 </tr>
             </tbody>
         </table>
+
+        <h3 style="margin: 30px 0 12px; color: var(--primary);">Data Export & Download</h3>
+        <table class="comparison-table">
+            <thead>
+                <tr>
+                    <th>Feature</th>
+                    <th class="superset-col">Apache Superset</th>
+                    <th class="metabase-col">Metabase</th>
+                    <th>Winner</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="feature-name">CSV Export (per chart)</td>
+                    <td><span class="status-yes">Yes</span> - Via chart menu (&hellip; &rarr; Export)</td>
+                    <td><span class="status-yes">Yes</span> - Via card menu (&hellip; &rarr; Download results)</td>
+                    <td>Tie</td>
+                </tr>
+                <tr>
+                    <td class="feature-name">Excel (.xlsx) Export</td>
+                    <td><span class="status-no">No</span> - CSV only natively</td>
+                    <td><span class="status-yes">Yes</span> - Native XLSX download</td>
+                    <td><strong style="color:var(--metabase-color)">Metabase</strong></td>
+                </tr>
+                <tr>
+                    <td class="feature-name">JSON Export</td>
+                    <td><span class="status-yes">Yes</span> - Via API</td>
+                    <td><span class="status-yes">Yes</span> - Via menu + API</td>
+                    <td>Tie</td>
+                </tr>
+                <tr>
+                    <td class="feature-name">Dashboard PDF Export</td>
+                    <td><span class="status-partial">Partial</span> - Requires Celery worker + headless browser</td>
+                    <td><span class="status-yes">Yes</span> - Built-in (Share &rarr; Export as PDF)</td>
+                    <td><strong style="color:var(--metabase-color)">Metabase</strong></td>
+                </tr>
+                <tr>
+                    <td class="feature-name">Public Download Links</td>
+                    <td><span class="status-no">No</span> - No public sharing for individual charts</td>
+                    <td><span class="status-yes">Yes</span> - Public UUID links for CSV/XLSX/JSON (no auth needed)</td>
+                    <td><strong style="color:var(--metabase-color)">Metabase</strong></td>
+                </tr>
+                <tr>
+                    <td class="feature-name">Embeddable Download Buttons</td>
+                    <td><span class="status-no">No</span> - Not available on dashboard</td>
+                    <td><span class="status-yes">Yes</span> - Link cards with public download URLs on dashboard</td>
+                    <td><strong style="color:var(--metabase-color)">Metabase</strong></td>
+                </tr>
+                <tr>
+                    <td class="feature-name">Scheduled Email Reports</td>
+                    <td><span class="status-yes">Yes</span> - Via Alerts &amp; Reports (requires SMTP + Celery)</td>
+                    <td><span class="status-yes">Yes</span> - Via Subscriptions (requires SMTP)</td>
+                    <td>Tie</td>
+                </tr>
+                <tr>
+                    <td class="feature-name">Dashboard Row Limit</td>
+                    <td>10,000 rows per export</td>
+                    <td>1,000,000 rows per export</td>
+                    <td><strong style="color:var(--metabase-color)">Metabase</strong></td>
+                </tr>
+                <tr>
+                    <td class="feature-name">API Download (Authenticated)</td>
+                    <td><span class="status-yes">Yes</span> - GET /api/v1/chart/{id}/data/?type=csv</td>
+                    <td><span class="status-yes">Yes</span> - POST /api/card/{id}/query/csv</td>
+                    <td>Tie</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3 style="margin: 30px 0 12px; color: var(--primary);">Interactive Features & Actions</h3>
+        <table class="comparison-table">
+            <thead>
+                <tr>
+                    <th>Feature</th>
+                    <th class="superset-col">Apache Superset</th>
+                    <th class="metabase-col">Metabase</th>
+                    <th>Winner</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="feature-name">Clickable Link Cards on Dashboard</td>
+                    <td><span class="status-partial">Partial</span> - Markdown with HTML links</td>
+                    <td><span class="status-yes">Yes</span> - Native link cards with URL</td>
+                    <td><strong style="color:var(--metabase-color)">Metabase</strong></td>
+                </tr>
+                <tr>
+                    <td class="feature-name">Action Buttons (Write-back)</td>
+                    <td><span class="status-no">No</span></td>
+                    <td><span class="status-yes">Yes</span> - Custom actions (INSERT/UPDATE/DELETE)</td>
+                    <td><strong style="color:var(--metabase-color)">Metabase</strong></td>
+                </tr>
+                <tr>
+                    <td class="feature-name">Custom Click Destinations</td>
+                    <td><span class="status-partial">Limited</span> - Via cross-filter only</td>
+                    <td><span class="status-yes">Yes</span> - Click any chart &rarr; custom URL with parameters</td>
+                    <td><strong style="color:var(--metabase-color)">Metabase</strong></td>
+                </tr>
+                <tr>
+                    <td class="feature-name">Public Sharing (No Login)</td>
+                    <td><span class="status-partial">Limited</span> - Public dashboard only (no individual charts)</td>
+                    <td><span class="status-yes">Yes</span> - Public links for dashboards AND individual questions</td>
+                    <td><strong style="color:var(--metabase-color)">Metabase</strong></td>
+                </tr>
+                <tr>
+                    <td class="feature-name">Heading/Text Cards</td>
+                    <td><span class="status-yes">Yes</span> - Markdown component</td>
+                    <td><span class="status-yes">Yes</span> - Heading + Text (Markdown) cards</td>
+                    <td>Tie</td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 </div>
 

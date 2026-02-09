@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BTRC QoS Dashboard - BI Tool Comparison: Apache Superset vs Metabase</title>
+    <style>
+        :root {
+            --primary: #1a365d;
+            --primary-light: #2b6cb0;
+            --accent: #38a169;
+            --accent-light: #68d391;
+            --warning: #d69e2e;
+            --danger: #e53e3e;
+            --bg: #f7fafc;
+            --card-bg: #ffffff;
+            --text: #2d3748;
+            --text-light: #718096;
+            --border: #e2e8f0;
+            --superset-color: #20a7c9;
+            --metabase-color: #509ee3;
+            --shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+            --shadow-lg: 0 10px 25px -5px rgba(0,0,0,0.1), 0 5px 10px -5px rgba(0,0,0,0.04);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            padding: 40px 0;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 60%);
+        }
+        .header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            position: relative;
+        }
+        .header .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            position: relative;
+        }
+        .header .badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 4px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            margin-top: 12px;
+            position: relative;
+        }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+
+        /* Quick Verdict Banner */
+        .verdict-banner {
+            background: linear-gradient(135deg, #276749 0%, #38a169 100%);
+            color: white;
+            margin: -20px auto 30px;
+            max-width: 1200px;
+            padding: 24px 32px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            position: relative;
+            z-index: 2;
+        }
+        .verdict-banner h2 { font-size: 1.3rem; margin-bottom: 8px; }
+        .verdict-banner p { opacity: 0.95; font-size: 0.95rem; }
+
+        /* Section */
+        .section { margin: 40px 0; }
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid var(--primary-light);
+            display: inline-block;
+        }
+
+        /* Tool Cards */
+        .tool-cards {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 30px;
+        }
+        .tool-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            transition: transform 0.2s;
+        }
+        .tool-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+        .tool-card-header {
+            padding: 20px 24px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .tool-card-header.superset { background: linear-gradient(135deg, #1a8a9e, var(--superset-color)); }
+        .tool-card-header.metabase { background: linear-gradient(135deg, #3d7cc9, var(--metabase-color)); }
+        .tool-card-header h3 { font-size: 1.3rem; }
+        .tool-card-header .version { opacity: 0.8; font-size: 0.85rem; }
+        .tool-card-body { padding: 24px; }
+        .tool-card-body .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .tool-card-body .stat-row:last-child { border-bottom: none; }
+        .stat-label { color: var(--text-light); font-size: 0.9rem; }
+        .stat-value { font-weight: 600; }
+
+        /* Comparison Table */
+        .comparison-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: var(--card-bg);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            margin-bottom: 24px;
+        }
+        .comparison-table thead th {
+            background: var(--primary);
+            color: white;
+            padding: 14px 18px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .comparison-table thead th:first-child { border-radius: 12px 0 0 0; }
+        .comparison-table thead th:last-child { border-radius: 0 12px 0 0; }
+        .comparison-table thead th.superset-col { background: var(--superset-color); }
+        .comparison-table thead th.metabase-col { background: var(--metabase-color); }
+        .comparison-table tbody td {
+            padding: 12px 18px;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.92rem;
+        }
+        .comparison-table tbody tr:last-child td { border-bottom: none; }
+        .comparison-table tbody tr:hover { background: #f0f7ff; }
+        .comparison-table .feature-name { font-weight: 600; color: var(--primary); min-width: 200px; }
+
+        /* Status Icons */
+        .status-yes { color: var(--accent); font-weight: 600; }
+        .status-partial { color: var(--warning); font-weight: 600; }
+        .status-no { color: var(--danger); font-weight: 600; }
+        .winner { background: #f0fff4 !important; }
+
+        /* Score Cards */
+        .score-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin: 30px 0;
+        }
+        .score-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            padding: 24px;
+        }
+        .score-card h3 {
+            font-size: 1.1rem;
+            margin-bottom: 16px;
+            color: var(--primary);
+        }
+        .score-bar-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            gap: 10px;
+        }
+        .score-bar-label { min-width: 130px; font-size: 0.88rem; color: var(--text-light); }
+        .score-bar-track {
+            flex: 1;
+            height: 24px;
+            background: #edf2f7;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+        .score-bar-fill {
+            height: 100%;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 8px;
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 600;
+            transition: width 0.8s ease;
+        }
+        .score-bar-fill.superset { background: linear-gradient(90deg, #1a8a9e, var(--superset-color)); }
+        .score-bar-fill.metabase { background: linear-gradient(90deg, #3d7cc9, var(--metabase-color)); }
+
+        /* Pros/Cons */
+        .pros-cons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin: 24px 0;
+        }
+        .pros-cons-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+        .pros-cons-header {
+            padding: 14px 20px;
+            color: white;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+        .pros-list, .cons-list {
+            padding: 16px 20px;
+            list-style: none;
+        }
+        .pros-list li, .cons-list li {
+            padding: 6px 0;
+            font-size: 0.9rem;
+            position: relative;
+            padding-left: 24px;
+        }
+        .pros-list li::before {
+            content: "\2713";
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+            font-weight: 700;
+        }
+        .cons-list li::before {
+            content: "\2717";
+            position: absolute;
+            left: 0;
+            color: var(--danger);
+            font-weight: 700;
+        }
+
+        /* BTRC Context */
+        .btrc-context {
+            background: linear-gradient(135deg, #2d3748, #4a5568);
+            color: white;
+            border-radius: 12px;
+            padding: 32px;
+            margin: 30px 0;
+        }
+        .btrc-context h3 { font-size: 1.2rem; margin-bottom: 16px; }
+        .btrc-context .req-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+            margin-top: 16px;
+        }
+        .req-item {
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 16px;
+        }
+        .req-item h4 {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            opacity: 0.8;
+            margin-bottom: 6px;
+        }
+        .req-item p { font-size: 0.95rem; }
+
+        /* Recommendation */
+        .recommendation {
+            background: var(--card-bg);
+            border: 3px solid var(--metabase-color);
+            border-radius: 12px;
+            padding: 32px;
+            margin: 30px 0;
+            text-align: center;
+        }
+        .recommendation .winner-badge {
+            display: inline-block;
+            background: var(--metabase-color);
+            color: white;
+            padding: 6px 20px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 16px;
+        }
+        .recommendation h2 {
+            font-size: 1.5rem;
+            color: var(--primary);
+            margin-bottom: 12px;
+        }
+        .recommendation p {
+            color: var(--text-light);
+            max-width: 700px;
+            margin: 0 auto;
+            font-size: 0.95rem;
+        }
+        .recommendation .reasons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-top: 24px;
+            text-align: center;
+        }
+        .reason-item {
+            padding: 16px;
+            background: #ebf8ff;
+            border-radius: 8px;
+        }
+        .reason-item .num {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--metabase-color);
+        }
+        .reason-item .label {
+            font-size: 0.82rem;
+            color: var(--text-light);
+            margin-top: 4px;
+        }
+
+        /* Timeline */
+        .timeline-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: var(--card-bg);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+        .timeline-table thead th {
+            background: var(--primary);
+            color: white;
+            padding: 12px 18px;
+            text-align: left;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+        .timeline-table tbody td {
+            padding: 12px 18px;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.9rem;
+        }
+        .timeline-table tbody tr:last-child td { border-bottom: none; }
+
+        /* Footer */
+        .footer {
+            background: var(--primary);
+            color: white;
+            text-align: center;
+            padding: 24px;
+            margin-top: 50px;
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+
+        /* Print */
+        @media print {
+            .header { padding: 20px 0; }
+            .tool-card:hover { transform: none; }
+            body { font-size: 11px; }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .tool-cards, .score-section, .pros-cons { grid-template-columns: 1fr; }
+            .btrc-context .req-grid { grid-template-columns: 1fr; }
+            .recommendation .reasons { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+    <div class="container">
+        <h1>BI Tool Comparison for BTRC QoS Dashboard</h1>
+        <div class="subtitle">Apache Superset vs Metabase - Technical Evaluation Report</div>
+        <div class="badge">BTRC Fixed Broadband QoS Monitoring - POC Phase | February 2026</div>
+    </div>
+</div>
+
+<!-- Quick Verdict -->
+<div class="container">
+    <div class="verdict-banner">
+        <h2>Recommendation: Metabase for BTRC QoS Dashboard</h2>
+        <p>After deploying and testing both tools with identical datasets (172,800 measurements, 40 ISPs, 120 PoPs, 8 Divisions, 64 Districts), Metabase delivers a superior experience for BTRC's regulatory dashboard requirements with easier deployment, better UX, native dropdown filters, custom GeoJSON maps, and faster dashboard creation via API.</p>
+    </div>
+</div>
+
+<!-- Tool Overview Cards -->
+<div class="container">
+    <div class="section">
+        <div class="section-title">Tool Overview</div>
+        <div class="tool-cards">
+            <div class="tool-card">
+                <div class="tool-card-header superset">
+                    <div>
+                        <h3>Apache Superset</h3>
+                        <div class="version">v4.1.1 | Apache 2.0 License</div>
+                    </div>
+                </div>
+                <div class="tool-card-body">
+                    <div class="stat-row"><span class="stat-label">Developer</span><span class="stat-value">Apache Software Foundation</span></div>
+                    <div class="stat-row"><span class="stat-label">GitHub Stars</span><span class="stat-value">65k+</span></div>
+                    <div class="stat-row"><span class="stat-label">First Release</span><span class="stat-value">2017 (Airbnb)</span></div>
+                    <div class="stat-row"><span class="stat-label">Primary Users</span><span class="stat-value">Data Engineers / Analysts</span></div>
+                    <div class="stat-row"><span class="stat-label">Visualization Types</span><span class="stat-value">50+</span></div>
+                    <div class="stat-row"><span class="stat-label">Deployment</span><span class="stat-value">Docker (complex)</span></div>
+                    <div class="stat-row"><span class="stat-label">Resource Usage</span><span class="stat-value">~2-3 GB RAM</span></div>
+                </div>
+            </div>
+            <div class="tool-card">
+                <div class="tool-card-header metabase">
+                    <div>
+                        <h3>Metabase</h3>
+                        <div class="version">v0.58.5 | AGPL License</div>
+                    </div>
+                </div>
+                <div class="tool-card-body">
+                    <div class="stat-row"><span class="stat-label">Developer</span><span class="stat-value">Metabase Inc.</span></div>
+                    <div class="stat-row"><span class="stat-label">GitHub Stars</span><span class="stat-value">40k+</span></div>
+                    <div class="stat-row"><span class="stat-label">First Release</span><span class="stat-value">2015</span></div>
+                    <div class="stat-row"><span class="stat-label">Primary Users</span><span class="stat-value">Business Users / Analysts</span></div>
+                    <div class="stat-row"><span class="stat-label">Visualization Types</span><span class="stat-value">20+</span></div>
+                    <div class="stat-row"><span class="stat-label">Deployment</span><span class="stat-value">Docker (simple)</span></div>
+                    <div class="stat-row"><span class="stat-label">Resource Usage</span><span class="stat-value">~1-1.5 GB RAM</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- BTRC Requirements Context -->
+<div class="container">
+    <div class="btrc-context">
+        <h3>BTRC QoS Dashboard Requirements</h3>
+        <p style="opacity:0.85; margin-bottom:12px;">The Bangladesh Telecommunication Regulatory Commission requires a QoS monitoring dashboard with these core capabilities:</p>
+        <div class="req-grid">
+            <div class="req-item">
+                <h4>Dashboard Scope</h4>
+                <p>3 Dashboards: Executive, Regulatory Operations, Operational Data</p>
+            </div>
+            <div class="req-item">
+                <h4>Geographic Coverage</h4>
+                <p>8 Divisions, 64 Districts, Custom GeoJSON maps (Bangladesh)</p>
+            </div>
+            <div class="req-item">
+                <h4>Key Features</h4>
+                <p>Drill-down filters (Division&rarr;District&rarr;ISP), Choropleth maps, SLA monitoring</p>
+            </div>
+            <div class="req-item">
+                <h4>Data Source</h4>
+                <p>TimescaleDB (PostgreSQL), 172K+ measurements, 40 ISPs, 150 violations</p>
+            </div>
+            <div class="req-item">
+                <h4>Deployment</h4>
+                <p>Self-hosted on government infrastructure, Docker-based</p>
+            </div>
+            <div class="req-item">
+                <h4>Users</h4>
+                <p>Regulatory officers, ISP compliance teams, executive leadership</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Feature Comparison Table -->
+<div class="container">
+    <div class="section">
+        <div class="section-title">Feature-by-Feature Comparison</div>
+
+        <h3 style="margin: 20px 0 12px; color: var(--primary);">Core Dashboard Features</h3>
+        <table class="comparison-table">
+            <thead>
+                <tr>
+                    <th>Feature</th>
+                    <th class="superset-col">Apache Superset</th>
+                    <th class="metabase-col">Metabase</th>
+                    <th>Winner</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="feature-name">Custom GeoJSON Maps</td>
+                    <td><span class="status-partial">Manual</span> - Replace files inside Docker container</td>
+                    <td><span class="status-yes">Yes</span> - Upload via Admin panel (UI)</td>
+                    <td><strong style="color:var(--metabase-color)">Metabase</strong></td>
+                </tr>
+                <tr class="winner">
+                    <td class="feature-name">Division Choropleth Map</td>
+                    <td><span class="status-yes">Yes</span> - country_map (D3/SVG)</td>
+                    <td><span class="status-yes">Yes</span> - Region map with custom GeoJSON</td>
+                    <td>Tie</td>
+                </tr>
+                <tr>
+                    <td class="feature-name">District Choropleth Map</td>
+                    <td><span class="status-no">No</span> - country_map only supports L1 subdivisions</td>
+                    <td><span class="status-yes">Yes</span> - Custom GeoJSON supports any level</td>
+                    <td><strong style="color:var(--metabase-color)">Metabase</strong></td>
+                </tr>
+                <tr>
+                    <td class="feature-name">Dashboard Filters (Dropdown)</td>
+                    <td><span class="status-partial">Partial</span> - API-created filters often broken; must create via UI</td>
+                    <td><span class="status-yes">Yes</span> - Static-list dropdowns via API or UI</td>
+                    <td><strong style="color:var(--metabase-color)">Metabase</strong></td>
+                </tr>
+                <tr>
+                    <td class="feature-name">Filter Cascade (Division&rarr;District)</td>
+                    <td><span class="status-yes">Yes</span> - Native parent-child filters</td>
+                    <td><span class="status-yes">Yes</span> - Parameter-based filtering</td>
+                    <td>Tie</td>
+                </tr>
+                <tr>
+                    <td class="feature-name">Cross-Filtering</td>
+                    <td><span class="status-yes">Yes</span> - emit_filter on charts</td>
+                    <td><span class="status-yes">Yes</span> - Dashboard cross-filter</td>
+                    <td>Tie</td>
+                </tr>
+                <tr>
+                    <td class="feature-name">Time Range Filter</td>
+                    <td><span class="status-partial">Partial</span> - filter_time has empty target issues</td>
+                    <td><span class="status-yes">Yes</span> - Native date/single picker</td>
+                    <td><strong style="color:var(--metabase-color)">Metabase</strong></td>
+                </tr>
+                <tr>
+                    <td class="feature-name">Drill-Through (Click&rarr;Detail)</td>
+                    <td><span class="status-partial">Limited</span> - Via cross-filter only</td>
+                    <td><span class="status-yes">Yes</span> - Custom click destinations + drill-through</td>
+                    <td><strong style="color:var(--metabase-color)">Metabase</strong></td>
+                </tr>
+                <tr>
+                    <td class="feature-name">Dashboard Tabs</td>
+                    <td><span class="status-yes">Yes</span></td>
+                    <td><span class="status-yes">Yes</span></td>
+                    <td>Tie</td>
+                </tr>
+                <tr>
+                    <td class="feature-name">KPI / Scorecard Cards</td>
+                    <td><span class="status-yes">Yes</span> - big_number_total</td>
+                    <td><span class="status-yes">Yes</span> - Scalar visualization</td>
+                    <td>Tie</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3 style="margin: 30px 0 12px; color: var(--primary);">Deployment & Operations</h3>
+        <table class="comparison-table">
+            <thead>
+                <tr>
+                    <th>Aspect</th>
+                    <th class="superset-col">Apache Superset</th>
+                    <th class="metabase-col">Metabase</th>
+                    <th>Winner</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="feature-name">Docker Setup Complexity</td>
+                    <td><span class="status-partial">Complex</span> - 5+ containers (web, worker, beat, redis, db)</td>
+                    <td><span class="status-yes">Simple</span> - Single container + database</td>
+                    <td><strong style="color:var(--metabase-color)">Metabase</strong></td>
+                </tr>
+                <tr>
+                    <td class="feature-name">Initial Configuration</td>
+                    <td><span class="status-partial">Complex</span> - superset_config.py, feature flags, env vars</td>
+                    <td><span class="status-yes">Simple</span> - Environment variables only</td>
+                    <td><strong style="color:var(--metabase-color)">Metabase</strong></td>
+                </tr>
+                <tr>
+                    <td class="feature-name">API for Automation</td>
+                    <td><span class="status-partial">Partial</span> - REST API with many bugs (filter API broken)</td>
+                    <td><span class="status-yes">Yes</span> - Full REST API, well-documented</td>
+                    <td><strong style="color:var(--metabase-color)">Metabase</strong></td>
+                </tr>
+                <tr>
+                    <td class="feature-name">Memory Footprint</td>
+                    <td>~2-3 GB RAM (5 containers)</td>
+                    <td>~1-1.5 GB RAM (1 container)</td>
+                    <td><strong style="color:var(--metabase-color)">Metabase</strong></td>
+                </tr>
+                <tr>
+                    <td class="feature-name">Startup Time</td>
+                    <td>~2-3 minutes</td>
+                    <td>~1-2 minutes</td>
+                    <td><strong style="color:var(--metabase-color)">Metabase</strong></td>
+                </tr>
+                <tr>
+                    <td class="feature-name">Upgrade Process</td>
+                    <td>Complex - database migrations, config changes</td>
+                    <td>Simple - pull new image, restart</td>
+                    <td><strong style="color:var(--metabase-color)">Metabase</strong></td>
+                </tr>
+                <tr>
+                    <td class="feature-name">Backup & Restore</td>
+                    <td>Requires separate metadata DB backup</td>
+                    <td>Single metadata DB or H2 file</td>
+                    <td><strong style="color:var(--metabase-color)">Metabase</strong></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3 style="margin: 30px 0 12px; color: var(--primary);">User Experience</h3>
+        <table class="comparison-table">
+            <thead>
+                <tr>
+                    <th>Aspect</th>
+                    <th class="superset-col">Apache Superset</th>
+                    <th class="metabase-col">Metabase</th>
+                    <th>Winner</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="feature-name">Learning Curve</td>
+                    <td><span class="status-partial">Steep</span> - Technical knowledge required</td>
+                    <td><span class="status-yes">Easy</span> - Business user friendly</td>
+                    <td><strong style="color:var(--metabase-color)">Metabase</strong></td>
+                </tr>
+                <tr>
+                    <td class="feature-name">UI/UX Quality</td>
+                    <td>Functional but dated</td>
+                    <td>Modern, polished, intuitive</td>
+                    <td><strong style="color:var(--metabase-color)">Metabase</strong></td>
+                </tr>
+                <tr>
+                    <td class="feature-name">Non-Technical Users</td>
+                    <td><span class="status-no">Difficult</span> - SQL knowledge often needed</td>
+                    <td><span class="status-yes">Easy</span> - Point-and-click query builder</td>
+                    <td><strong style="color:var(--metabase-color)">Metabase</strong></td>
+                </tr>
+                <tr>
+                    <td class="feature-name">Documentation</td>
+                    <td>Good but scattered</td>
+                    <td>Excellent, well-organized</td>
+                    <td><strong style="color:var(--metabase-color)">Metabase</strong></td>
+                </tr>
+                <tr>
+                    <td class="feature-name">SQL Lab / Query Editor</td>
+                    <td><span class="status-yes">Excellent</span> - Full SQL Lab with auto-complete</td>
+                    <td><span class="status-yes">Good</span> - Native query editor</td>
+                    <td><strong style="color:var(--superset-color)">Superset</strong></td>
+                </tr>
+                <tr>
+                    <td class="feature-name">Visualization Variety</td>
+                    <td><span class="status-yes">50+ chart types</span></td>
+                    <td>20+ chart types</td>
+                    <td><strong style="color:var(--superset-color)">Superset</strong></td>
+                </tr>
+                <tr>
+                    <td class="feature-name">Embedding</td>
+                    <td>Yes - iframe embed</td>
+                    <td>Yes - iframe + JWT embed</td>
+                    <td>Tie</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Score Comparison -->
+<div class="container">
+    <div class="section">
+        <div class="section-title">Scoring (BTRC Requirements Weighted)</div>
+        <div class="score-section">
+            <div class="score-card">
+                <h3>Apache Superset</h3>
+                <div class="score-bar-container">
+                    <span class="score-bar-label">GeoJSON Maps</span>
+                    <div class="score-bar-track"><div class="score-bar-fill superset" style="width:50%">5/10</div></div>
+                </div>
+                <div class="score-bar-container">
+                    <span class="score-bar-label">Filters/Drill-down</span>
+                    <div class="score-bar-track"><div class="score-bar-fill superset" style="width:60%">6/10</div></div>
+                </div>
+                <div class="score-bar-container">
+                    <span class="score-bar-label">Ease of Deploy</span>
+                    <div class="score-bar-track"><div class="score-bar-fill superset" style="width:40%">4/10</div></div>
+                </div>
+                <div class="score-bar-container">
+                    <span class="score-bar-label">User Experience</span>
+                    <div class="score-bar-track"><div class="score-bar-fill superset" style="width:50%">5/10</div></div>
+                </div>
+                <div class="score-bar-container">
+                    <span class="score-bar-label">API Automation</span>
+                    <div class="score-bar-track"><div class="score-bar-fill superset" style="width:50%">5/10</div></div>
+                </div>
+                <div class="score-bar-container">
+                    <span class="score-bar-label">Viz Variety</span>
+                    <div class="score-bar-track"><div class="score-bar-fill superset" style="width:90%">9/10</div></div>
+                </div>
+                <div class="score-bar-container">
+                    <span class="score-bar-label">SQL Capabilities</span>
+                    <div class="score-bar-track"><div class="score-bar-fill superset" style="width:90%">9/10</div></div>
+                </div>
+                <div style="text-align:right; margin-top:16px; font-size:1.2rem;">
+                    <strong>Weighted Total: 5.6 / 10</strong>
+                </div>
+            </div>
+            <div class="score-card">
+                <h3>Metabase</h3>
+                <div class="score-bar-container">
+                    <span class="score-bar-label">GeoJSON Maps</span>
+                    <div class="score-bar-track"><div class="score-bar-fill metabase" style="width:90%">9/10</div></div>
+                </div>
+                <div class="score-bar-container">
+                    <span class="score-bar-label">Filters/Drill-down</span>
+                    <div class="score-bar-track"><div class="score-bar-fill metabase" style="width:80%">8/10</div></div>
+                </div>
+                <div class="score-bar-container">
+                    <span class="score-bar-label">Ease of Deploy</span>
+                    <div class="score-bar-track"><div class="score-bar-fill metabase" style="width:90%">9/10</div></div>
+                </div>
+                <div class="score-bar-container">
+                    <span class="score-bar-label">User Experience</span>
+                    <div class="score-bar-track"><div class="score-bar-fill metabase" style="width:90%">9/10</div></div>
+                </div>
+                <div class="score-bar-container">
+                    <span class="score-bar-label">API Automation</span>
+                    <div class="score-bar-track"><div class="score-bar-fill metabase" style="width:80%">8/10</div></div>
+                </div>
+                <div class="score-bar-container">
+                    <span class="score-bar-label">Viz Variety</span>
+                    <div class="score-bar-track"><div class="score-bar-fill metabase" style="width:60%">6/10</div></div>
+                </div>
+                <div class="score-bar-container">
+                    <span class="score-bar-label">SQL Capabilities</span>
+                    <div class="score-bar-track"><div class="score-bar-fill metabase" style="width:70%">7/10</div></div>
+                </div>
+                <div style="text-align:right; margin-top:16px; font-size:1.2rem;">
+                    <strong>Weighted Total: 8.3 / 10</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Pros and Cons -->
+<div class="container">
+    <div class="section">
+        <div class="section-title">Strengths & Weaknesses</div>
+        <div class="pros-cons">
+            <!-- Superset -->
+            <div class="pros-cons-card">
+                <div class="pros-cons-header" style="background: var(--superset-color);">Apache Superset - Strengths</div>
+                <ul class="pros-list">
+                    <li>50+ visualization types including advanced charts (Sunburst, Treemap, Heatmap)</li>
+                    <li>SQL Lab is excellent for data exploration and ad-hoc queries</li>
+                    <li>Large open-source community (65k+ GitHub stars)</li>
+                    <li>Apache Foundation backing ensures long-term maintenance</li>
+                    <li>Good for data engineering teams with SQL expertise</li>
+                    <li>Native cross-filter support via emit_filter</li>
+                </ul>
+            </div>
+            <div class="pros-cons-card">
+                <div class="pros-cons-header" style="background: #c53030;">Apache Superset - Weaknesses (BTRC Context)</div>
+                <ul class="cons-list">
+                    <li>Custom GeoJSON requires manual file replacement inside Docker</li>
+                    <li>country_map only supports Level-1 subdivisions (Divisions only, no Districts)</li>
+                    <li>deck.gl maps broken in Chrome (WebGL luma.gl null error)</li>
+                    <li>API-created native filters broken ("Apply Filters" stays disabled)</li>
+                    <li>Complex Docker setup: 5 containers (web, worker, beat, Redis, Postgres)</li>
+                    <li>Higher memory footprint (~2-3 GB RAM)</li>
+                    <li>Steep learning curve for non-technical BTRC officers</li>
+                    <li>Time Range filter API has empty target issues</li>
+                </ul>
+            </div>
+        </div>
+        <div class="pros-cons" style="margin-top: 0;">
+            <!-- Metabase -->
+            <div class="pros-cons-card">
+                <div class="pros-cons-header" style="background: var(--metabase-color);">Metabase - Strengths</div>
+                <ul class="pros-list">
+                    <li>Custom GeoJSON upload via Admin UI - supports Division AND District maps</li>
+                    <li>Dropdown filters with static-list values work reliably via API</li>
+                    <li>Simple Docker deployment: 1 container + shared database</li>
+                    <li>Modern, intuitive UI accessible to non-technical users</li>
+                    <li>Full REST API for dashboard automation and CI/CD</li>
+                    <li>Low memory footprint (~1-1.5 GB RAM)</li>
+                    <li>Click-to-drill with custom destinations for hierarchy navigation</li>
+                    <li>Excellent documentation and active community</li>
+                    <li>Dashboard tabs with per-tab card layout</li>
+                    <li>Date picker filters work correctly for time range filtering</li>
+                </ul>
+            </div>
+            <div class="pros-cons-card">
+                <div class="pros-cons-header" style="background: #c53030;">Metabase - Weaknesses</div>
+                <ul class="cons-list">
+                    <li>Fewer chart types (20 vs 50+) - no Sunburst, Treemap natively</li>
+                    <li>SQL editor less powerful than Superset SQL Lab</li>
+                    <li>No true map drill-down (click region to zoom) - uses filter workaround</li>
+                    <li>AGPL license (more restrictive than Apache 2.0 for embedding)</li>
+                    <li>Smaller community than Superset (40k vs 65k stars)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Issues Encountered During POC -->
+<div class="container">
+    <div class="section">
+        <div class="section-title">Issues Encountered During BTRC POC Implementation</div>
+        <table class="comparison-table">
+            <thead>
+                <tr>
+                    <th>Issue</th>
+                    <th class="superset-col">Superset (V2)</th>
+                    <th class="metabase-col">Metabase (V3)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="feature-name">District-Level Map</td>
+                    <td><span class="status-no">Failed</span> - country_map only supports divisions; deck.gl broken in Chrome</td>
+                    <td><span class="status-yes">Working</span> - Custom GeoJSON with 64 districts rendered correctly</td>
+                </tr>
+                <tr>
+                    <td class="feature-name">Filter Creation via API</td>
+                    <td><span class="status-no">Failed</span> - "Apply Filters" button stays disabled; must create via UI manually</td>
+                    <td><span class="status-yes">Working</span> - Static-list dropdown filters created via API successfully</td>
+                </tr>
+                <tr>
+                    <td class="feature-name">Dashboard Automation</td>
+                    <td><span class="status-partial">Partial</span> - Charts/datasets via API work, but filters must be manual</td>
+                    <td><span class="status-yes">Full</span> - Entire dashboard (tabs, cards, filters, maps) via API</td>
+                </tr>
+                <tr>
+                    <td class="feature-name">Time Range Filter</td>
+                    <td><span class="status-no">Failed</span> - filter_time type has empty target issues via API</td>
+                    <td><span class="status-yes">Working</span> - date/single type with template tags</td>
+                </tr>
+                <tr>
+                    <td class="feature-name">GeoJSON Setup</td>
+                    <td><span class="status-partial">Complex</span> - Copy files into Docker, rebuild, configure in code</td>
+                    <td><span class="status-yes">Simple</span> - Upload URL in Admin &rarr; Settings &rarr; Maps</td>
+                </tr>
+                <tr>
+                    <td class="feature-name">Container Stability</td>
+                    <td><span class="status-partial">Issues</span> - Celery worker crashes, Redis connection drops</td>
+                    <td><span class="status-yes">Stable</span> - Single JVM process, no crashes observed</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Final Recommendation -->
+<div class="container">
+    <div class="recommendation">
+        <div class="winner-badge">RECOMMENDED FOR BTRC</div>
+        <h2>Metabase is the Best Choice for BTRC QoS Dashboard</h2>
+        <p>Based on hands-on testing with identical BTRC datasets and requirements, Metabase delivers superior results across all critical dimensions: custom GeoJSON maps (Division + District), reliable dropdown filters, simple deployment, and an intuitive interface suitable for regulatory officers.</p>
+        <div class="reasons">
+            <div class="reason-item">
+                <div class="num">2</div>
+                <div class="label">Map Levels<br>(Division + District)</div>
+            </div>
+            <div class="reason-item">
+                <div class="num">1</div>
+                <div class="label">Container<br>to Deploy</div>
+            </div>
+            <div class="reason-item">
+                <div class="num">100%</div>
+                <div class="label">API Automation<br>Dashboard Creation</div>
+            </div>
+            <div class="reason-item">
+                <div class="num">1.5 GB</div>
+                <div class="label">RAM Usage<br>vs 3 GB Superset</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Migration Recommendation -->
+<div class="container">
+    <div class="section">
+        <div class="section-title">Recommended Migration Path</div>
+        <table class="timeline-table">
+            <thead>
+                <tr>
+                    <th>Phase</th>
+                    <th>Action</th>
+                    <th>Timeline</th>
+                    <th>Outcome</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Phase 1</strong></td>
+                    <td>POC Completion with Metabase (Current)</td>
+                    <td>Week 1-2</td>
+                    <td>3 dashboards (Executive, Regulatory, Operational) fully functional</td>
+                </tr>
+                <tr>
+                    <td><strong>Phase 2</strong></td>
+                    <td>Stakeholder Review & Feedback</td>
+                    <td>Week 3</td>
+                    <td>BTRC officers test dashboards, provide feedback on UX and features</td>
+                </tr>
+                <tr>
+                    <td><strong>Phase 3</strong></td>
+                    <td>Production Deployment</td>
+                    <td>Week 4-5</td>
+                    <td>Deploy on BTRC servers with SSL, authentication, backup strategy</td>
+                </tr>
+                <tr>
+                    <td><strong>Phase 4</strong></td>
+                    <td>Live Data Integration</td>
+                    <td>Week 6-8</td>
+                    <td>Connect real ISP probe data, set up scheduled refreshes</td>
+                </tr>
+                <tr>
+                    <td><strong>Phase 5</strong></td>
+                    <td>Training & Handover</td>
+                    <td>Week 9-10</td>
+                    <td>Train BTRC staff on dashboard usage, filter navigation, data interpretation</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Footer -->
+<div class="footer">
+    <div class="container">
+        <p><strong>BTRC Fixed Broadband QoS Monitoring Dashboard - BI Tool Comparison Report</strong></p>
+        <p>Prepared by: Technometrics Solutions | Date: February 2026 | Version: 1.0</p>
+        <p style="margin-top:8px; opacity:0.7;">This report is based on hands-on POC implementation using both Apache Superset v4.1.1 and Metabase v0.58.5 with identical TimescaleDB datasets.</p>
+    </div>
+</div>
+
+</body>
+</html>

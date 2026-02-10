@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Drill-Down Test - BTRC Dashboard</title>
+    <style>
+        body { font-family: Arial; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; }
+        h1 { color: #1a365d; }
+        .test-box { background: #e7f3ff; padding: 15px; margin: 15px 0; border-left: 4px solid #2196F3; }
+        .step { margin: 10px 0; padding: 10px; background: #f9f9f9; border-radius: 4px; }
+        .step strong { color: #2196F3; }
+        .url-box { background: #333; color: #0f0; padding: 10px; border-radius: 4px; font-family: monospace; margin: 10px 0; }
+        .success { color: #28a745; }
+        .warning { color: #dc3545; }
+        .info { color: #17a2b8; }
+        a { color: #2196F3; text-decoration: none; font-weight: bold; }
+        a:hover { text-decoration: underline; }
+        .button { 
+            display: inline-block; 
+            padding: 12px 24px; 
+            background: #2196F3; 
+            color: white; 
+            border-radius: 4px; 
+            margin: 10px 5px; 
+            text-decoration: none;
+        }
+        .button:hover { background: #1976D2; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Drill-Down Navigation Test</h1>
+        
+        <div class="test-box">
+            <h3>Test Steps:</h3>
+            
+            <div class="step">
+                <strong>Step 1:</strong> Open the dashboard
+                <br><a class="button" href="http://localhost:3000/dashboard/6" target="_blank">Open Dashboard 6</a>
+            </div>
+            
+            <div class="step">
+                <strong>Step 2:</strong> Go to Tab <strong>R2.2: Regional Analysis</strong>
+                <br><span class="info">ℹ️ You should see a blue navigation box at the top with instructions</span>
+            </div>
+            
+            <div class="step">
+                <strong>Step 3:</strong> Look at the URL in your browser
+                <br>Expected URL:
+                <div class="url-box">http://localhost:3000/dashboard/6</div>
+            </div>
+            
+            <div class="step">
+                <strong>Step 4:</strong> Click on <strong>"Dhaka"</strong> in the Division Performance Summary table
+                <br><span class="warning">⚠️ Click the text "Dhaka", not just anywhere on the row</span>
+            </div>
+            
+            <div class="step">
+                <strong>Step 5:</strong> Watch what happens
+                <br><strong class="success">✓ Expected behavior:</strong> URL changes to:
+                <div class="url-box">http://localhost:3000/dashboard/6?division=Dhaka</div>
+                <br><strong class="warning">✗ If not working:</strong> Only filter appears at top, URL doesn't change
+            </div>
+            
+            <div class="step">
+                <strong>Step 6:</strong> If drill-down worked, you should see:
+                <ul>
+                    <li>District map shows only <strong>Dhaka's 13 districts</strong></li>
+                    <li>District Ranking table shows only Dhaka districts</li>
+                    <li>Filter at top shows: "Division is Dhaka"</li>
+                    <li><strong>URL changed with ?division=Dhaka</strong></li>
+                </ul>
+            </div>
+            
+            <div class="step">
+                <strong>Step 7:</strong> Test browser back button
+                <br>Click browser <strong>BACK</strong> button
+                <br><span class="success">✓ Should return to: http://localhost:3000/dashboard/6 (National view)</span>
+            </div>
+        </div>
+
+        <div class="test-box" style="background: #fff3cd; border-left-color: #ffc107;">
+            <h3>🔧 Troubleshooting</h3>
+            
+            <p><strong>If drill-through doesn't work (URL doesn't change):</strong></p>
+            <ol>
+                <li>Hard refresh the browser: <code>Ctrl + Shift + R</code> (Windows) or <code>Cmd + Shift + R</code> (Mac)</li>
+                <li>Clear browser cache for localhost:3000</li>
+                <li>Try clicking on the <strong>Division Performance Map</strong> instead (click a division region)</li>
+                <li>Check browser console (F12) for any JavaScript errors</li>
+            </ol>
+            
+            <p><strong>Alternative test URLs:</strong></p>
+            <ul>
+                <li><a href="http://localhost:3000/dashboard/6?division=Dhaka" target="_blank">Direct link: Dhaka division</a></li>
+                <li><a href="http://localhost:3000/dashboard/6?division=Dhaka&district=Gazipur" target="_blank">Direct link: Gazipur district</a></li>
+            </ul>
+            <p>If these work but clicking doesn't, it's a Metabase click behavior issue.</p>
+        </div>
+
+        <div class="test-box" style="background: #d1ecf1; border-left-color: #17a2b8;">
+            <h3>📊 What You Should See</h3>
+            
+            <p><strong>National View (no filters):</strong></p>
+            <ul>
+                <li>Division map: 8 colored divisions</li>
+                <li>Division summary table: 8 rows (one per division)</li>
+            </ul>
+            
+            <p><strong>Division View (division=Dhaka):</strong></p>
+            <ul>
+                <li>District map: Only Dhaka's districts visible</li>
+                <li>District Ranking: 13 rows (Dhaka districts: Dhaka, Faridpur, Gazipur, Gopalganj, Kishoreganj, Madaripur, Manikganj, Munshiganj, Narayanganj, Narsingdi, Rajbari, Shariatpur, Tangail)</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

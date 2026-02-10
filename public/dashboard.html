@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BTRC QoS Dashboard - Regulatory Operations</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f7fa;
+            overflow: hidden;
+        }
+
+        /* Header with breadcrumb */
+        .header {
+            background: linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%);
+            color: white;
+            padding: 16px 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .header-left {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .dashboard-title {
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+
+        /* Breadcrumb navigation */
+        .breadcrumb {
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .breadcrumb a {
+            color: #68d391;
+            text-decoration: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .breadcrumb a:hover {
+            background: rgba(104, 211, 145, 0.2);
+        }
+
+        .breadcrumb-separator {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 12px;
+        }
+
+        .breadcrumb-current {
+            color: white;
+            font-weight: 500;
+        }
+
+        /* Reset button */
+        .reset-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+            display: none;
+        }
+
+        .reset-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .reset-btn.visible {
+            display: block;
+        }
+
+        /* Loading indicator */
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 999;
+        }
+
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #2b6cb0;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: #666;
+            font-size: 14px;
+        }
+
+        /* Dashboard container */
+        #dashboard-container {
+            width: 100%;
+            height: calc(100vh - 65px);
+            border: none;
+            display: block;
+        }
+
+        /* Info banner */
+        .info-banner {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 12px 20px;
+            color: #1565C0;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .info-banner .icon {
+            font-size: 18px;
+        }
+
+        .hide {
+            display: none !important;
+        }
+
+        /* Drill-Down Menu */
+        .drill-down-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 9998;
+        }
+
+        .drill-down-overlay.show {
+            display: block;
+        }
+
+        .drill-down-menu {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            z-index: 9999;
+            min-width: 400px;
+            max-width: 500px;
+        }
+
+        .drill-down-menu.show {
+            display: block;
+            animation: slideIn 0.2s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -45%);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%);
+            }
+        }
+
+        .drill-down-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .drill-down-header strong {
+            font-size: 18px;
+            color: #1a365d;
+        }
+
+        .drill-down-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #718096;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .drill-down-close:hover {
+            background: #f7fafc;
+            color: #2d3748;
+        }
+
+        .drill-down-options {
+            padding: 16px;
+        }
+
+        .drill-down-option {
+            width: 100%;
+            padding: 16px;
+            margin-bottom: 8px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.2s;
+        }
+
+        .drill-down-option:hover {
+            border-color: #2b6cb0;
+            background: #f7fafc;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(43, 108, 176, 0.15);
+        }
+
+        .drill-down-option.cancel {
+            border-color: #e53e3e;
+            color: #e53e3e;
+        }
+
+        .drill-down-option.cancel:hover {
+            border-color: #c53030;
+            background: #fff5f5;
+        }
+
+        .option-icon {
+            font-size: 24px;
+            min-width: 32px;
+            text-align: center;
+        }
+
+        .option-text {
+            font-weight: 600;
+            font-size: 15px;
+            color: #2d3748;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .option-desc {
+            font-size: 12px;
+            color: #718096;
+            display: block;
+        }
+
+        .drill-down-option .option-text,
+        .drill-down-option .option-desc {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <!-- Info Banner -->
+    <div class="info-banner" id="info-banner">
+        <span class="icon">ℹ️</span>
+        <span><strong>Drill-Down Enabled:</strong> Click Division → District → ISP to navigate. Use breadcrumb or back button to return.</span>
+    </div>
+
+    <!-- Header with breadcrumb navigation -->
+    <div class="header">
+        <div class="header-left">
+            <div class="dashboard-title">
+                BTRC QoS Dashboard - Regulatory Operations
+            </div>
+            <div class="breadcrumb" id="breadcrumb">
+                <a href="/dashboard" title="View all divisions">🏠 National</a>
+            </div>
+        </div>
+        <button class="reset-btn" id="reset-btn" onclick="resetDashboard()">
+            ↺ Reset View
+        </button>
+    </div>
+
+    <!-- Loading indicator -->
+    <div class="loading" id="loading">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Loading dashboard...</div>
+    </div>
+
+    <!-- Embedded Metabase Dashboard -->
+    <iframe
+        id="dashboard-container"
+        src=""
+        frameborder="0"
+        allowfullscreen
+    ></iframe>
+
+    <!-- Drill-Down Menu -->
+    <div id="drill-down-menu" class="drill-down-menu">
+        <div class="drill-down-header">
+            <strong id="drill-down-title">Drill into Division</strong>
+            <button class="drill-down-close" onclick="closeDrillDownMenu()">✕</button>
+        </div>
+        <div class="drill-down-options">
+            <button class="drill-down-option" onclick="drillDownTo('sla')">
+                <span class="option-icon">📊</span>
+                <span class="option-text">View SLA Performance</span>
+                <span class="option-desc">Tab R2.1: Monitor SLA compliance</span>
+            </button>
+            <button class="drill-down-option" onclick="drillDownTo('regional')">
+                <span class="option-icon">📍</span>
+                <span class="option-text">View Regional Analysis</span>
+                <span class="option-desc">Tab R2.2: Explore districts & ISPs</span>
+            </button>
+            <button class="drill-down-option" onclick="drillDownTo('violations')">
+                <span class="option-icon">⚠️</span>
+                <span class="option-text">View Violations</span>
+                <span class="option-desc">Tab R2.3: Review violation details</span>
+            </button>
+            <button class="drill-down-option cancel" onclick="closeDrillDownMenu()">
+                <span class="option-icon">❌</span>
+                <span class="option-text">Cancel</span>
+            </button>
+        </div>
+    </div>
+    <div id="drill-down-overlay" class="drill-down-overlay" onclick="closeDrillDownMenu()"></div>
+
+    <script src="/dashboard.js"></script>
+</body>
+</html>

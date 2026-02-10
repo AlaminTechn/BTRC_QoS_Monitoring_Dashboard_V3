@@ -1,0 +1,239 @@
+/* BTRC Dashboard - Complete Dark Mode CSS */
+/* Paste this in Metabase Admin Settings → Appearance → Custom Styling */
+
+/* Main Background */
+body,
+.Dashboard,
+.DashboardBody,
+.Nav,
+.AdminLayout {
+  background-color: #0a1929 !important;
+  color: #ffffff !important;
+}
+
+/* Dashboard Header */
+.DashboardHeader {
+  background-color: #0a1929 !important;
+  border-bottom: 1px solid #1e3a52 !important;
+}
+
+.DashboardHeader h1,
+.DashboardHeader .Header-title {
+  color: #ffffff !important;
+  font-weight: 600;
+}
+
+/* Dashboard Tabs */
+.DashboardTabs {
+  background-color: #132f4c !important;
+  border-bottom: 1px solid #1e3a52 !important;
+}
+
+.Tab {
+  color: #90caf9 !important;
+  padding: 12px 24px;
+  font-weight: 500;
+}
+
+.Tab--selected {
+  color: #ffffff !important;
+  border-bottom: 3px solid #2196f3 !important;
+  background-color: rgba(33, 150, 243, 0.1) !important;
+}
+
+/* Card Containers */
+.DashCard,
+.Card {
+  background-color: #132f4c !important;
+  border: 1px solid #1e3a52 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+.DashCard:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* Card Titles */
+.DashCard .Card-title,
+.Card .Card-title {
+  color: #b0bec5 !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 1px !important;
+  text-transform: uppercase !important;
+}
+
+/* Scalar Cards (Number Display) */
+.ScalarValue {
+  color: #ffffff !important;
+  font-size: 48px !important;
+  font-weight: 700 !important;
+}
+
+.ScalarValue-description {
+  color: #90caf9 !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+}
+
+/* Status Cards - Colored Borders */
+/* R1.1 Compliant (Green) */
+.DashCard[data-card-id="76"] {
+  border-left: 4px solid #10b981 !important;
+  background: linear-gradient(135deg, #132f4c 0%, #0d3b2f 100%) !important;
+}
+
+/* R1.2 At Risk (Orange) */
+.DashCard[data-card-id="77"] {
+  border-left: 4px solid #f59e0b !important;
+  background: linear-gradient(135deg, #132f4c 0%, #3b2a0d 100%) !important;
+}
+
+/* R1.3 Violation (Red) */
+.DashCard[data-card-id="78"] {
+  border-left: 4px solid #ef4444 !important;
+  background: linear-gradient(135deg, #132f4c 0%, #3b0d0d 100%) !important;
+}
+
+/* Table Styling */
+.TableInteractive,
+.Table {
+  background-color: #132f4c !important;
+  border: 1px solid #1e3a52 !important;
+}
+
+.TableInteractive-header,
+.Table-header {
+  background-color: #1a3a52 !important;
+  color: #90caf9 !important;
+  font-weight: 600 !important;
+  border-bottom: 2px solid #2196f3 !important;
+}
+
+.TableInteractive-cellWrapper,
+.Table-cell {
+  border-color: #1e3a52 !important;
+  color: #ffffff !important;
+}
+
+.TableInteractive tbody tr:hover,
+.Table tbody tr:hover {
+  background-color: #1a3a52 !important;
+}
+
+/* Charts */
+.Chart,
+.Visualization {
+  background-color: #132f4c !important;
+}
+
+/* Navigation Bar */
+.Nav {
+  background-color: #0a1929 !important;
+  border-bottom: 1px solid #1e3a52 !important;
+}
+
+.Nav-item {
+  color: #90caf9 !important;
+}
+
+.Nav-item--selected {
+  color: #ffffff !important;
+}
+
+/* Sidebar */
+.Sidebar,
+.AdminLayout-sidebar {
+  background-color: #132f4c !important;
+  border-right: 1px solid #1e3a52 !important;
+}
+
+/* Buttons */
+.Button,
+button {
+  background-color: #2196f3 !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 4px !important;
+}
+
+.Button:hover,
+button:hover {
+  background-color: #1976d2 !important;
+}
+
+/* Filter Bar */
+.DashboardParametersAndCards .DashboardParameters {
+  background-color: #132f4c !important;
+  border-bottom: 1px solid #1e3a52 !important;
+}
+
+/* Input Fields */
+input,
+select,
+textarea {
+  background-color: #1a3a52 !important;
+  color: #ffffff !important;
+  border: 1px solid #2e4156 !important;
+}
+
+/* Dropdown Menus */
+.PopoverBody,
+.Popover {
+  background-color: #1a3a52 !important;
+  border: 1px solid #2e4156 !important;
+  color: #ffffff !important;
+}
+
+/* Loading Spinner */
+.LoadingSpinner {
+  border-color: #2196f3 !important;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background-color: #0a1929;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #2196f3;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #1976d2;
+}
+
+/* Text Colors */
+h1, h2, h3, h4, h5, h6 {
+  color: #ffffff !important;
+}
+
+p, span, div, label {
+  color: #b0bec5 !important;
+}
+
+a {
+  color: #90caf9 !important;
+}
+
+a:hover {
+  color: #64b5f6 !important;
+}
+
+/* Admin Panel */
+.AdminLayout-content {
+  background-color: #0a1929 !important;
+}
+
+.AdminPanel {
+  background-color: #132f4c !important;
+  border: 1px solid #1e3a52 !important;
+}

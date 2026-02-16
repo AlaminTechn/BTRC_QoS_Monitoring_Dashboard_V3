@@ -62,7 +62,7 @@ services:
 
   # ─── Nginx (Custom Dashboard Wrapper) ─────────────────────────────────────
   nginx:
-    image: nginx:alpine
+    image: nginx:1.25-alpine
     container_name: btrc-v3-nginx
     restart: unless-stopped
     ports:
@@ -79,6 +79,23 @@ services:
       retries: 3
     networks:
       - btrc-v3
+
+  # ─── User Initialization Service ───────────────────────────────────────────
+  metabase-init:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.init
+    container_name: btrc-v3-metabase-init
+    environment:
+      METABASE_URL: http://metabase:3000
+      METABASE_ADMIN_EMAIL: alamin.technometrics22@gmail.com
+      METABASE_ADMIN_PASSWORD: Test@123
+    depends_on:
+      metabase:
+        condition: service_healthy
+    networks:
+      - btrc-v3
+    restart: "no"  # Run once only
 
   # ─── Helical Insight CE (BI Tool #2) ──────────────────────────────────────
   # DISABLED: Helical Insight CE build failed.

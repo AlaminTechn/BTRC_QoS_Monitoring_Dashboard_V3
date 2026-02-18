@@ -1,0 +1,1098 @@
+================================================================================
+BTRC Dashboard - FREE Cloud Deployment Guide
+Complete Guide to Deploy ALL Services at ZERO Cost (with Security)
+================================================================================
+
+📋 TABLE OF CONTENTS
+================================================================================
+1. Overview - What We're Deploying
+2. Free Cloud Database Options (Secured)
+3. Free Application Hosting Options
+4. Complete Architecture Comparison
+5. RECOMMENDED: Best Free Stack for BTRC
+6. Step-by-Step Deployment Guide
+7. Security Configuration
+8. Connecting Services
+9. Domain & SSL Setup
+10. Monitoring & Backups
+11. Cost Analysis & Limits
+12. Scaling Beyond Free Tier
+13. Troubleshooting
+14. Alternative Options
+
+================================================================================
+1. OVERVIEW - WHAT WE'RE DEPLOYING
+================================================================================
+
+Current BTRC Stack (Local):
+---------------------------
+1. TimescaleDB (PostgreSQL) - Port 5433
+   - QoS data (172,800 measurements)
+   - Metabase metadata
+
+2. Metabase - Port 3000
+   - Dashboards and visualizations
+   - User authentication
+
+3. Nginx - Port 8080
+   - Custom dashboard wrapper
+
+4. React App (if going that route) - Port 3001
+   - Custom frontend
+
+CLOUD DEPLOYMENT GOAL:
+---------------------
+✅ Database: Secure cloud PostgreSQL (with TimescaleDB)
+✅ Metabase: Cloud-hosted application
+✅ Frontend: Static site hosting
+✅ SSL/HTTPS: Free certificates
+✅ Custom Domain: (optional but recommended)
+✅ Cost: $0/month (within free tier limits)
+
+================================================================================
+2. FREE CLOUD DATABASE OPTIONS (SECURED)
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ OPTION 1: SUPABASE (RECOMMENDED) ⭐                                      │
+├─────────────────────────────────────────────────────────────────────────┤
+│ What: PostgreSQL database with built-in security                        │
+│ Free Tier: 500 MB database, 2 GB transfer/month, unlimited API requests │
+│ TimescaleDB: ❌ Not supported (use regular PostgreSQL)                  │
+│ Security: ✅ SSL, row-level security, built-in auth                     │
+│ Dashboard: ✅ Web interface included                                    │
+│ Backups: ✅ Automatic backups                                           │
+│ Location: Multiple regions (choose closest)                             │
+│                                                                          │
+│ Pros:                                                                    │
+│ - Easy setup (5 minutes)                                                │
+│ - Built-in auth system                                                  │
+│ - REST API auto-generated                                               │
+│ - Great dashboard                                                       │
+│ - No credit card required                                               │
+│                                                                          │
+│ Cons:                                                                    │
+│ - 500 MB limit (may be tight for large datasets)                       │
+│ - No TimescaleDB (but can use regular PostgreSQL with partitioning)    │
+│                                                                          │
+│ Best for: Small to medium datasets, rapid deployment                    │
+│ URL: https://supabase.com                                               │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ OPTION 2: NEON                                                           │
+├─────────────────────────────────────────────────────────────────────────┤
+│ What: Serverless PostgreSQL (scales to zero)                            │
+│ Free Tier: 3 GB storage, 10 projects, 100 hours compute/month          │
+│ TimescaleDB: ❌ Not supported                                           │
+│ Security: ✅ SSL, branching, point-in-time recovery                     │
+│ Dashboard: ✅ Modern web UI                                             │
+│ Backups: ✅ Automatic                                                   │
+│                                                                          │
+│ Pros:                                                                    │
+│ - Scales to zero (pay only when active)                                │
+│ - Database branching (like git)                                        │
+│ - Generous free tier (3 GB)                                            │
+│ - Fast cold starts                                                     │
+│                                                                          │
+│ Cons:                                                                    │
+│ - 100 hours/month compute limit                                        │
+│ - Newer service (less mature)                                          │
+│                                                                          │
+│ Best for: Development, staging, low-traffic production                  │
+│ URL: https://neon.tech                                                  │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ OPTION 3: RAILWAY (Limited Free)                                        │
+├─────────────────────────────────────────────────────────────────────────┤
+│ What: Full deployment platform with PostgreSQL                          │
+│ Free Tier: $5 credit/month (usually enough for DB + small app)         │
+│ TimescaleDB: ✅ Can install extension                                   │
+│ Security: ✅ SSL, private networking                                    │
+│ Dashboard: ✅ Excellent UI                                              │
+│ Backups: ⚠️ Manual only on free tier                                   │
+│                                                                          │
+│ Pros:                                                                    │
+│ - TimescaleDB support!                                                 │
+│ - Can deploy full app + DB                                             │
+│ - Great developer experience                                           │
+│ - Private networking                                                   │
+│                                                                          │
+│ Cons:                                                                    │
+│ - $5/month limit (may run out)                                         │
+│ - Credit card required (even for free tier)                            │
+│ - Sleep after inactivity                                               │
+│                                                                          │
+│ Best for: Full-stack deployment with TimescaleDB                        │
+│ URL: https://railway.app                                                │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ OPTION 4: ELEPHANTSQL (Classic Free Tier)                               │
+├─────────────────────────────────────────────────────────────────────────┤
+│ What: PostgreSQL as a service (oldest provider)                         │
+│ Free Tier: 20 MB storage, 5 concurrent connections                     │
+│ TimescaleDB: ❌ Not supported                                           │
+│ Security: ✅ SSL                                                         │
+│ Dashboard: ✅ Basic web console                                         │
+│ Backups: ❌ Not on free tier                                            │
+│                                                                          │
+│ Pros:                                                                    │
+│ - Truly free forever                                                   │
+│ - No credit card needed                                                │
+│ - Reliable and mature                                                  │
+│                                                                          │
+│ Cons:                                                                    │
+│ - Only 20 MB! (too small for BTRC)                                     │
+│ - 5 connections limit                                                  │
+│                                                                          │
+│ Best for: Tiny projects, testing only                                   │
+│ URL: https://www.elephantsql.com                                        │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ OPTION 5: TIMESCALE CLOUD (Trial, then paid)                            │
+├─────────────────────────────────────────────────────────────────────────┤
+│ What: Official TimescaleDB cloud hosting                                │
+│ Free Tier: 30-day trial, then $25/month minimum                        │
+│ TimescaleDB: ✅ Native support (best option)                            │
+│ Security: ✅ SSL, VPC, encryption at rest                               │
+│ Dashboard: ✅ Professional dashboard                                    │
+│ Backups: ✅ Automatic, continuous                                       │
+│                                                                          │
+│ Pros:                                                                    │
+│ - Official TimescaleDB (best performance)                              │
+│ - Enterprise features                                                  │
+│ - Excellent support                                                    │
+│ - Production-ready                                                     │
+│                                                                          │
+│ Cons:                                                                    │
+│ - NOT FREE after 30 days                                               │
+│ - $25/month minimum                                                    │
+│                                                                          │
+│ Best for: Production with budget                                        │
+│ URL: https://www.timescale.com/cloud                                    │
+└─────────────────────────────────────────────────────────────────────────┘
+
+RECOMMENDATION FOR BTRC:
+-----------------------
+🏆 OPTION 1: SUPABASE (Best free option)
+   OR
+🏆 OPTION 3: RAILWAY (If you need TimescaleDB)
+
+Supabase is recommended because:
+✅ Generous free tier (500 MB)
+✅ No credit card required
+✅ Built-in security
+✅ Easy to use
+✅ Automatic backups
+
+Railway alternative if:
+✅ You absolutely need TimescaleDB features
+✅ Don't mind providing credit card
+✅ Want all services in one place
+
+================================================================================
+3. FREE APPLICATION HOSTING OPTIONS
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ METABASE HOSTING OPTIONS                                                 │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│ Option A: RENDER.COM (Recommended) ⭐                                   │
+│ ────────────────────────────────────────                                │
+│ What: Docker container hosting                                          │
+│ Free Tier: 750 hours/month, sleeps after 15 min inactivity             │
+│ Memory: 512 MB RAM                                                      │
+│ SSL: ✅ Free automatic HTTPS                                            │
+│ Custom Domain: ✅ Supported                                             │
+│                                                                          │
+│ Pros:                                                                    │
+│ - Easy deployment (connect GitHub)                                     │
+│ - Automatic HTTPS                                                      │
+│ - Good for Docker (Metabase is Docker image)                          │
+│ - No credit card needed                                                │
+│                                                                          │
+│ Cons:                                                                    │
+│ - Sleeps after 15 min (30-60s cold start)                             │
+│ - 512 MB RAM (may be tight for Metabase)                              │
+│                                                                          │
+│ URL: https://render.com                                                 │
+│                                                                          │
+│ Option B: FLY.IO                                                        │
+│ ───────────────                                                         │
+│ Free Tier: 3 small VMs, 3GB persistent storage                         │
+│ Memory: Up to 256 MB per VM                                            │
+│ SSL: ✅ Free                                                            │
+│                                                                          │
+│ Pros:                                                                    │
+│ - Multiple regions                                                     │
+│ - Better control                                                       │
+│ - Persistent storage included                                          │
+│                                                                          │
+│ Cons:                                                                    │
+│ - More complex setup                                                   │
+│ - Credit card required                                                 │
+│                                                                          │
+│ URL: https://fly.io                                                     │
+│                                                                          │
+│ Option C: RAILWAY                                                       │
+│ ────────────────                                                        │
+│ (Same as database option - deploy everything together)                  │
+│ $5/month credit covers DB + small Metabase instance                    │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ REACT FRONTEND HOSTING OPTIONS                                          │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│ Option A: VERCEL (Best for React) ⭐                                    │
+│ ────────────────────────────────────                                    │
+│ What: Static site & serverless functions hosting                        │
+│ Free Tier: Unlimited bandwidth, 100 GB/month                           │
+│ SSL: ✅ Free automatic                                                  │
+│ Custom Domain: ✅ Free                                                  │
+│ Build Minutes: 6000/month                                              │
+│                                                                          │
+│ Perfect for: React, Next.js, static sites                              │
+│ URL: https://vercel.com                                                 │
+│                                                                          │
+│ Option B: NETLIFY                                                       │
+│ ────────────────                                                        │
+│ Similar to Vercel, 100 GB bandwidth/month                              │
+│ URL: https://netlify.com                                                │
+│                                                                          │
+│ Option C: CLOUDFLARE PAGES                                              │
+│ ──────────────────────────                                              │
+│ Unlimited bandwidth, unlimited sites                                    │
+│ Fastest globally (Cloudflare network)                                  │
+│ URL: https://pages.cloudflare.com                                       │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+
+================================================================================
+4. COMPLETE ARCHITECTURE COMPARISON
+================================================================================
+
+OPTION A: All-in-One (Railway)
+------------------------------
+Railway: PostgreSQL + Metabase + React (one platform)
+
+Pros: Simple, everything together, private networking
+Cons: $5/month may not be enough, credit card required
+
+Cost: $0-5/month (may exceed free $5 credit)
+
+
+OPTION B: Hybrid (Supabase + Render + Vercel) ⭐ RECOMMENDED
+------------------------------------------------------------
+- Supabase: PostgreSQL database (free)
+- Render: Metabase hosting (free with sleep)
+- Vercel: React frontend (free, always on)
+
+Pros: Best free tiers, no credit card for Supabase/Vercel
+Cons: Multiple platforms to manage
+
+Cost: $0/month (within limits)
+
+
+OPTION C: Minimal (Supabase + Vercel only)
+------------------------------------------
+- Supabase: Database + Auth API
+- Vercel: React app directly querying Supabase
+
+Skip Metabase entirely, use React + ECharts only
+
+Pros: Simplest, fully free, fastest
+Cons: Need to build charts in React
+
+Cost: $0/month
+
+
+OPTION D: Premium Free Tier (Google Cloud / AWS)
+------------------------------------------------
+Use Google Cloud Run or AWS Free Tier
+
+Pros: More resources, enterprise features
+Cons: Complex setup, credit card required, auto-charges after limits
+
+Cost: $0/month (if careful) but risk of charges
+
+================================================================================
+5. RECOMMENDED: BEST FREE STACK FOR BTRC
+================================================================================
+
+🏆 RECOMMENDED ARCHITECTURE 🏆
+────────────────────────────
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                                                                          │
+│  USER (browser)                                                         │
+│      ↓                                                                   │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │  CLOUDFLARE (CDN & SSL) - FREE                                    │  │
+│  │  - HTTPS certificates                                             │  │
+│  │  - DDoS protection                                                │  │
+│  │  - Global CDN                                                     │  │
+│  └──────────────────────────────────────────────────────────────────┘  │
+│      ↓                                                                   │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │  VERCEL - FREE                                                    │  │
+│  │  - React Dashboard Frontend                                       │  │
+│  │  - Custom domain: dashboard.btrc.gov.bd                          │  │
+│  │  - Always on, no sleep                                           │  │
+│  └──────────────────────────────────────────────────────────────────┘  │
+│      ↓ (API calls)                                                      │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │  RENDER.COM - FREE                                                │  │
+│  │  - Metabase Application                                           │  │
+│  │  - Sleeps after 15 min (30s wake up)                             │  │
+│  │  - Custom domain: metabase.btrc.gov.bd                           │  │
+│  └──────────────────────────────────────────────────────────────────┘  │
+│      ↓ (database queries)                                               │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │  SUPABASE - FREE                                                  │  │
+│  │  - PostgreSQL Database (500 MB)                                   │  │
+│  │  - SSL encryption                                                 │  │
+│  │  - Automatic backups                                              │  │
+│  │  - Row-level security                                             │  │
+│  └──────────────────────────────────────────────────────────────────┘  │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+
+TOTAL COST: $0/month ✅
+
+WITHIN FREE LIMITS:
+- Supabase: 500 MB database, 2 GB bandwidth
+- Render: 750 hours/month (always covered)
+- Vercel: 100 GB bandwidth/month
+- Cloudflare: Unlimited (always free)
+
+================================================================================
+6. STEP-BY-STEP DEPLOYMENT GUIDE
+================================================================================
+
+═══════════════════════════════════════════════════════════════════════════
+PHASE 1: DATABASE SETUP (Supabase) - 10 minutes
+═══════════════════════════════════════════════════════════════════════════
+
+Step 1.1: Create Supabase Account
+──────────────────────────────────
+1. Go to https://supabase.com
+2. Click "Start your project"
+3. Sign up with GitHub (recommended) or email
+4. No credit card required ✅
+
+Step 1.2: Create New Project
+────────────────────────────
+1. Click "New Project"
+2. Fill in details:
+   - Name: btrc-qos-dashboard
+   - Database Password: [Generate strong password]
+   - Region: Choose closest to Bangladesh (Singapore recommended)
+3. Click "Create new project"
+4. Wait 2-3 minutes for provisioning
+
+Step 1.3: Get Connection Details
+────────────────────────────────
+1. Go to Project Settings → Database
+2. Note down:
+   ✓ Host: db.xxxxxxxxxx.supabase.co
+   ✓ Database name: postgres
+   ✓ Port: 5432
+   ✓ User: postgres
+   ✓ Password: [your password]
+   ✓ URI: postgres://postgres:[password]@db.xxx.supabase.co:5432/postgres
+
+Step 1.4: Connect and Create Schema
+───────────────────────────────────
+Method A: Using Supabase SQL Editor (Easiest)
+1. Click "SQL Editor" in sidebar
+2. Click "New query"
+3. Paste your schema from: poc_data_v2.8/02_DB_Schema_Creation_v2.8.sql
+4. Run query
+5. Create tables, indexes, etc.
+
+Method B: Using psql locally
+1. On your local machine:
+   psql "postgres://postgres:[password]@db.xxx.supabase.co:5432/postgres"
+
+2. Import schema:
+   \i poc_data_v2.8/02_DB_Schema_Creation_v2.8.sql
+
+Step 1.5: Import Data
+────────────────────
+1. Export from local TimescaleDB:
+   pg_dump -h localhost -p 5433 -U btrc_admin -d btrc_qos_poc \
+     --data-only --table=ts_qos_measurements > data.sql
+
+2. Import to Supabase:
+   psql "postgres://postgres:[password]@db.xxx.supabase.co:5432/postgres" \
+     < data.sql
+
+3. Verify:
+   SELECT COUNT(*) FROM ts_qos_measurements;
+   -- Should return 172800
+
+Step 1.6: Enable SSL (Already enabled)
+──────────────────────────────────────
+✅ Supabase enforces SSL by default
+✅ All connections encrypted
+
+Step 1.7: Setup Backups
+──────────────────────
+✅ Automatic daily backups enabled by default
+✅ Point-in-time recovery (7 days on free tier)
+
+═══════════════════════════════════════════════════════════════════════════
+PHASE 2: METABASE DEPLOYMENT (Render.com) - 15 minutes
+═══════════════════════════════════════════════════════════════════════════
+
+Step 2.1: Prepare Metabase for Cloud
+────────────────────────────────────
+1. Create Dockerfile (if not exists):
+
+# Dockerfile
+FROM metabase/metabase:latest
+ENV MB_DB_TYPE=postgres
+ENV MB_DB_CONNECTION_URI=$DATABASE_URL
+EXPOSE 3000
+
+2. Create render.yaml:
+
+services:
+  - type: web
+    name: btrc-metabase
+    env: docker
+    plan: free
+    envVars:
+      - key: MB_DB_TYPE
+        value: postgres
+      - key: MB_DB_DBNAME
+        value: postgres
+      - key: MB_DB_PORT
+        value: 5432
+      - key: MB_DB_USER
+        value: postgres
+      - key: MB_DB_PASS
+        sync: false  # Set in Render dashboard
+      - key: MB_DB_HOST
+        sync: false
+      - key: JAVA_TIMEZONE
+        value: Asia/Dhaka
+
+Step 2.2: Create Render Account
+──────────────────────────────
+1. Go to https://render.com
+2. Sign up with GitHub (recommended)
+3. No credit card required ✅
+
+Step 2.3: Create Web Service
+────────────────────────────
+1. Click "New +" → "Web Service"
+2. Connect GitHub repository (or use Docker image)
+3. Configure:
+   - Name: btrc-metabase
+   - Region: Singapore (closest to Bangladesh)
+   - Branch: main
+   - Environment: Docker
+   - Plan: Free
+4. Add environment variables:
+   - MB_DB_HOST: db.xxx.supabase.co
+   - MB_DB_PASS: [your Supabase password]
+   - MB_DB_USER: postgres
+   - MB_DB_DBNAME: postgres
+   - MB_DB_PORT: 5432
+   - MB_DB_TYPE: postgres
+5. Click "Create Web Service"
+
+Step 2.4: Wait for Deployment
+─────────────────────────────
+1. Render builds and deploys (5-10 minutes)
+2. Watch logs in real-time
+3. Once deployed, get URL: https://btrc-metabase.onrender.com
+
+Step 2.5: Setup Metabase
+───────────────────────
+1. Visit https://btrc-metabase.onrender.com
+2. First-time setup:
+   - Language: English
+   - Name: BTRC Admin
+   - Email: alamin.technometrics22@gmail.com
+   - Password: [Choose strong password]
+3. Skip "Add your data" (already using Supabase as metadata DB)
+4. Add BTRC database:
+   - Database type: PostgreSQL
+   - Name: BTRC QoS
+   - Host: db.xxx.supabase.co
+   - Port: 5432
+   - Database name: postgres
+   - Username: postgres
+   - Password: [Supabase password]
+   - SSL: Yes (required)
+5. Test connection
+6. Save
+
+Step 2.6: Import Dashboards
+──────────────────────────
+Option A: Manual recreation
+- Recreate dashboards using Metabase UI
+
+Option B: API import (if you exported)
+- Use Metabase API to import dashboard definitions
+
+═══════════════════════════════════════════════════════════════════════════
+PHASE 3: FRONTEND DEPLOYMENT (Vercel) - 10 minutes
+═══════════════════════════════════════════════════════════════════════════
+
+Step 3.1: Prepare React App
+──────────────────────────
+If using React + ECharts approach:
+
+1. Update API endpoints in code:
+   const METABASE_URL = process.env.REACT_APP_METABASE_URL ||
+     'https://btrc-metabase.onrender.com';
+
+2. Create .env.production:
+   REACT_APP_METABASE_URL=https://btrc-metabase.onrender.com
+
+3. Build app:
+   npm run build
+
+If using HTML wrapper:
+1. Update iframe URLs to point to Render Metabase
+2. No build needed
+
+Step 3.2: Create Vercel Account
+──────────────────────────────
+1. Go to https://vercel.com
+2. Sign up with GitHub
+3. No credit card required ✅
+
+Step 3.3: Deploy to Vercel
+─────────────────────────
+1. Click "Add New" → "Project"
+2. Import Git Repository
+3. Select your repository
+4. Configure:
+   - Framework Preset: Create React App (auto-detected)
+   - Build Command: npm run build
+   - Output Directory: build
+   - Environment Variables:
+     - REACT_APP_METABASE_URL = https://btrc-metabase.onrender.com
+5. Click "Deploy"
+6. Wait 2-3 minutes
+7. Get URL: https://btrc-dashboard.vercel.app
+
+Step 3.4: Add Custom Domain (Optional)
+──────────────────────────────────────
+1. In Vercel project settings → Domains
+2. Add: dashboard.btrc.gov.bd
+3. Update DNS records at your domain registrar:
+   Type: CNAME
+   Name: dashboard
+   Value: cname.vercel-dns.com
+   TTL: 3600
+4. Wait for DNS propagation (5-60 minutes)
+5. Vercel auto-provisions SSL certificate
+
+═══════════════════════════════════════════════════════════════════════════
+PHASE 4: DOMAIN & SSL SETUP (Cloudflare) - 15 minutes
+═══════════════════════════════════════════════════════════════════════════
+
+Step 4.1: Setup Cloudflare (Optional but Recommended)
+────────────────────────────────────────────────────
+1. Sign up at https://cloudflare.com (free plan)
+2. Add your domain: btrc.gov.bd
+3. Update nameservers at your registrar to Cloudflare's
+
+Step 4.2: Configure DNS
+──────────────────────
+Add DNS records:
+
+1. Frontend:
+   Type: CNAME
+   Name: dashboard
+   Target: cname.vercel-dns.com
+   Proxy: ON (orange cloud)
+
+2. Metabase:
+   Type: CNAME
+   Name: metabase
+   Target: btrc-metabase.onrender.com
+   Proxy: ON
+
+Step 4.3: SSL/TLS Settings
+─────────────────────────
+1. SSL/TLS → Overview → Full (strict)
+2. Edge Certificates → Always Use HTTPS: ON
+3. Automatic HTTPS Rewrites: ON
+
+✅ Free SSL certificates auto-provisioned!
+
+═══════════════════════════════════════════════════════════════════════════
+PHASE 5: SECURITY CONFIGURATION - 20 minutes
+═══════════════════════════════════════════════════════════════════════════
+
+Step 5.1: Supabase Security
+──────────────────────────
+1. Enable Row Level Security (RLS):
+
+ALTER TABLE ts_qos_measurements ENABLE ROW LEVEL SECURITY;
+
+-- Policy: Only authenticated users can read
+CREATE POLICY "Enable read for authenticated users"
+ON ts_qos_measurements FOR SELECT
+TO authenticated
+USING (true);
+
+2. Create API keys with limited permissions
+3. Enable MFA for admin account
+
+Step 5.2: Metabase Security
+──────────────────────────
+1. Admin Settings → Security
+   - Require HTTPS: YES
+   - Session timeout: 24 hours
+   - Enable audit logging
+
+2. Set strong admin password
+3. Enable 2FA (if using Google OAuth)
+
+3. Restrict access by IP (if needed):
+   - Use Cloudflare firewall rules
+   - Allow only office IP ranges
+
+Step 5.3: Environment Variables
+──────────────────────────────
+Never commit secrets to Git!
+
+In Render:
+- Use environment variables (not hardcoded)
+- Mark sensitive vars as "secret"
+
+In Vercel:
+- Add secrets via dashboard
+- Never in code
+
+Step 5.4: Database Firewall
+──────────────────────────
+In Supabase:
+1. Settings → Database → Network
+2. Add allowed IP addresses:
+   - Your office IP
+   - Render IP ranges (if needed)
+
+Or use SSL certificates for authentication
+
+Step 5.5: Backup Strategy
+────────────────────────
+1. Supabase: Automatic backups (daily)
+2. Manual backups weekly:
+   pg_dump "postgres://postgres:...@db.xxx.supabase.co:5432/postgres" \
+     > backup_$(date +%Y%m%d).sql
+
+3. Store backups on:
+   - Google Drive (15 GB free)
+   - GitHub private repo (< 100 MB)
+   - Dropbox (2 GB free)
+
+================================================================================
+7. CONNECTING SERVICES
+================================================================================
+
+Service URLs (After Deployment):
+--------------------------------
+Database: db.xxx.supabase.co:5432
+Metabase: https://btrc-metabase.onrender.com
+Frontend: https://dashboard.btrc.gov.bd
+
+Connection Flow:
+---------------
+Frontend (Vercel)
+    → API calls →
+Metabase (Render)
+    → Database queries →
+PostgreSQL (Supabase)
+
+CORS Configuration:
+------------------
+In Metabase, allow frontend domain:
+MB_EMBEDDING_APP_ORIGIN=https://dashboard.btrc.gov.bd
+
+Environment Variables Setup:
+---------------------------
+Vercel (Frontend):
+  REACT_APP_METABASE_URL=https://btrc-metabase.onrender.com
+
+Render (Metabase):
+  MB_DB_HOST=db.xxx.supabase.co
+  MB_DB_PORT=5432
+  MB_DB_USER=postgres
+  MB_DB_PASS=[secret]
+  MB_DB_DBNAME=postgres
+  MB_SITE_URL=https://btrc-metabase.onrender.com
+
+================================================================================
+8. MONITORING & BACKUPS
+================================================================================
+
+MONITORING:
+----------
+1. Supabase Dashboard:
+   - Query performance
+   - Database size
+   - Connection count
+   - Bandwidth usage
+
+2. Render Dashboard:
+   - App logs
+   - Performance metrics
+   - Uptime status
+   - Deploy history
+
+3. Vercel Dashboard:
+   - Analytics
+   - Bandwidth usage
+   - Build logs
+   - Performance insights
+
+4. Cloudflare Dashboard:
+   - Traffic analytics
+   - Security events
+   - Cache statistics
+
+ALERTS:
+------
+Setup alerts for:
+- Database size > 400 MB (80% of 500 MB)
+- Render app sleep/wake
+- SSL certificate expiry
+- Bandwidth approaching limit
+
+BACKUPS:
+-------
+Automated:
+  ✅ Supabase: Daily automatic backups (7-day retention)
+  ✅ Render: Automatic deploy logs
+  ✅ Vercel: Automatic deployment history
+
+Manual:
+  📅 Weekly: Full database export
+  📅 Monthly: Configuration backup
+  📅 Before major changes: Snapshot
+
+Backup Script:
+-------------
+#!/bin/bash
+# backup.sh - Run weekly
+
+DATE=$(date +%Y%m%d)
+pg_dump "postgres://postgres:[pass]@db.xxx.supabase.co:5432/postgres" \
+  --format=custom \
+  > backups/btrc_backup_$DATE.dump
+
+# Upload to Google Drive (using rclone)
+rclone copy backups/btrc_backup_$DATE.dump gdrive:BTRC-Backups/
+
+================================================================================
+9. COST ANALYSIS & LIMITS
+================================================================================
+
+FREE TIER LIMITS:
+----------------
+
+Supabase (Database):
+  ✅ 500 MB storage
+  ✅ 2 GB bandwidth/month
+  ✅ Unlimited API requests
+  ✅ 50,000 monthly active users
+  ⚠️ No automatic backups beyond 7 days
+  ⚠️ Community support only
+
+Render (Metabase):
+  ✅ 750 hours/month (always enough)
+  ✅ 512 MB RAM
+  ✅ Sleeps after 15 min inactivity
+  ⚠️ 30-60 second cold start
+  ⚠️ No persistent disk
+
+Vercel (Frontend):
+  ✅ 100 GB bandwidth/month
+  ✅ Unlimited sites
+  ✅ Automatic HTTPS
+  ✅ Global CDN
+  ⚠️ 6000 build minutes/month
+
+Cloudflare (CDN/SSL):
+  ✅ Unlimited bandwidth
+  ✅ Free SSL
+  ✅ DDoS protection
+  ✅ Always free (no limits!)
+
+TOTAL MONTHLY COST: $0 ✅
+
+WHAT HAPPENS IF YOU EXCEED LIMITS?
+----------------------------------
+
+Supabase:
+  > 500 MB database:
+    → Upgrade to Pro ($25/month)
+    → Or clean old data
+
+  > 2 GB bandwidth:
+    → App stops working
+    → Upgrade to Pro
+
+Render:
+  App works within 750 hours/month (always OK)
+  Sleep after inactivity (not a limit, just behavior)
+
+Vercel:
+  > 100 GB bandwidth:
+    → $20 per 100 GB overage
+    → Upgrade to Pro ($20/month)
+
+ESTIMATED USAGE (BTRC Project):
+-------------------------------
+Database: ~300 MB (within 500 MB limit) ✅
+Bandwidth: ~10 GB/month (within limits) ✅
+Build minutes: ~100/month (within limit) ✅
+
+VERDICT: Will stay free indefinitely ✅
+
+================================================================================
+10. SCALING BEYOND FREE TIER
+================================================================================
+
+WHEN TO UPGRADE:
+---------------
+
+1. Database > 400 MB:
+   → Supabase Pro: $25/month (8 GB)
+   → Or: Neon Scale: $19/month (unlimited storage)
+
+2. Metabase needs to be always on:
+   → Render Standard: $7/month (no sleep)
+   → Or: Railway: $5-10/month
+
+3. Heavy traffic (> 50,000 visits/month):
+   → All services can handle this on free tier!
+   → Only pay if bandwidth exceeds limits
+
+4. Need TimescaleDB features:
+   → Railway: Free $5 credit (may need more)
+   → Or: Timescale Cloud: $25/month
+
+UPGRADE PATH:
+------------
+
+Phase 1: Free (Current)
+  Cost: $0/month
+  Users: < 100
+  Data: < 500 MB
+
+Phase 2: Light Production ($10-20/month)
+  - Supabase Pro: $25/month OR
+  - Railway: $10/month (DB + Metabase together)
+  Users: < 1000
+  Data: < 5 GB
+
+Phase 3: Full Production ($50-100/month)
+  - Timescale Cloud: $25/month
+  - Render Standard: $7/month
+  - Vercel Pro: $20/month (if needed)
+  - Cloudflare: Still free!
+  Users: < 10,000
+  Data: < 50 GB
+
+Phase 4: Enterprise ($200+/month)
+  - Dedicated servers
+  - Enterprise support
+  - SLA guarantees
+
+================================================================================
+11. TROUBLESHOOTING
+================================================================================
+
+Problem: "Render app is sleeping"
+Solution: This is normal. First request takes 30-60s to wake up.
+  Workaround: Use a ping service (cron-job.org) to keep it awake
+
+Problem: "Database connection failed"
+Solution: Check if SSL is enabled, verify credentials
+  Test: psql "postgres://postgres:...@db.xxx.supabase.co:5432/postgres?sslmode=require"
+
+Problem: "CORS error when calling Metabase API"
+Solution: Set MB_EMBEDDING_APP_ORIGIN in Render environment variables
+
+Problem: "Supabase bandwidth exceeded"
+Solution: Optimize queries, add caching, or upgrade to Pro
+
+Problem: "Deployment failed on Render"
+Solution: Check logs, verify Dockerfile, ensure environment variables set
+
+Problem: "SSL certificate error"
+Solution: Wait for Cloudflare/Vercel to provision cert (can take 24 hours)
+
+================================================================================
+12. ALTERNATIVE FREE OPTIONS
+================================================================================
+
+If Above Stack Doesn't Work:
+----------------------------
+
+OPTION: Google Cloud Platform (Free Tier)
+  - Cloud Run: 2 million requests/month (free)
+  - Cloud SQL: $10/month (not free but cheap)
+  - Cloud Storage: 5 GB free
+  Setup: More complex, requires credit card
+
+OPTION: AWS Free Tier
+  - EC2 t2.micro: 750 hours/month (12 months free)
+  - RDS: 750 hours/month (12 months free)
+  - S3: 5 GB storage free
+  Setup: Complex, auto-charges after 12 months
+
+OPTION: Azure Free Tier
+  - App Service: 10 web apps
+  - Database: Limited free tier
+  - 12 months free, then paid
+  Setup: Medium complexity
+
+OPTION: Self-Hosted on Free VPS
+  - Oracle Cloud: Free tier includes 2 VMs (forever)
+  - Hetzner: $5/month (not free but cheap)
+  - DigitalOcean: $4/month (student discount available)
+
+================================================================================
+13. FINAL CHECKLIST
+================================================================================
+
+Before Going Live:
+-----------------
+Database:
+  □ Supabase project created
+  □ Schema imported
+  □ Data migrated
+  □ SSL enabled
+  □ Backups configured
+  □ Connection tested
+
+Metabase:
+  □ Deployed to Render
+  □ Connected to Supabase
+  □ Dashboards recreated
+  □ Users created
+  □ Permissions configured
+  □ Public links working
+
+Frontend:
+  □ Deployed to Vercel
+  □ API endpoints updated
+  □ SSL enabled
+  □ Custom domain configured
+  □ Mobile responsive
+
+Security:
+  □ SSL/HTTPS everywhere
+  □ Strong passwords set
+  □ Environment variables secured
+  □ No secrets in code
+  □ Firewall configured
+
+Monitoring:
+  □ Alerts configured
+  □ Backup script automated
+  □ Analytics enabled
+  □ Logs accessible
+
+Documentation:
+  □ Connection strings documented
+  □ User guide updated
+  □ Admin procedures documented
+  □ Troubleshooting guide ready
+
+================================================================================
+14. QUICK START COMMANDS
+================================================================================
+
+# 1. Export local database
+pg_dump -h localhost -p 5433 -U btrc_admin -d btrc_qos_poc \
+  --format=custom > local_backup.dump
+
+# 2. Import to Supabase
+pg_restore --no-owner --no-privileges \
+  -h db.xxx.supabase.co -p 5432 -U postgres -d postgres \
+  local_backup.dump
+
+# 3. Test connection
+psql "postgres://postgres:[password]@db.xxx.supabase.co:5432/postgres?sslmode=require"
+
+# 4. Build React app
+cd react-app
+npm run build
+
+# 5. Deploy to Vercel
+vercel --prod
+
+# 6. Check everything
+curl https://dashboard.btrc.gov.bd
+curl https://btrc-metabase.onrender.com/api/health
+
+================================================================================
+SUMMARY
+================================================================================
+
+RECOMMENDED FREE STACK:
+----------------------
+✅ Database: Supabase (500 MB, free forever)
+✅ Metabase: Render.com (free, sleeps after 15 min)
+✅ Frontend: Vercel (100 GB bandwidth/month)
+✅ CDN/SSL: Cloudflare (unlimited, free forever)
+
+TOTAL COST: $0/month
+
+SETUP TIME:
+----------
+- Database: 10 minutes
+- Metabase: 15 minutes
+- Frontend: 10 minutes
+- Domain/SSL: 15 minutes
+Total: ~50 minutes
+
+LIMITATIONS:
+-----------
+- Database: 500 MB (enough for BTRC POC)
+- Metabase: Sleeps after 15 min (30s wake up)
+- Frontend: 100 GB bandwidth (very generous)
+
+WHEN TO UPGRADE:
+---------------
+- Database > 400 MB → Supabase Pro ($25/month)
+- Need always-on Metabase → Render Standard ($7/month)
+- Very high traffic → Stay on free tier, it handles it!
+
+SECURITY:
+--------
+✅ SSL everywhere
+✅ Encrypted connections
+✅ Automatic backups
+✅ Firewall protection
+✅ DDoS protection (Cloudflare)
+
+READY TO DEPLOY: Follow Phase 1-5 above!
+
+================================================================================
+END OF GUIDE
+================================================================================
+
+For questions: Refer to section 11 (Troubleshooting)
+For monitoring: See section 8
+For security: See section 7
+For scaling: See section 10
+
+Good luck with your deployment! 🚀

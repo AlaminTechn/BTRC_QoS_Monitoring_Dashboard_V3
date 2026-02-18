@@ -43,7 +43,7 @@ services:
       MB_JETTY_PORT: 3000
       JAVA_TIMEZONE: Asia/Dhaka
       # Allow iframe embedding from custom dashboard
-      MB_EMBEDDING_APP_ORIGIN: "http://localhost:8080"
+      MB_EMBEDDING_APP_ORIGIN: "http://localhost:9000"
     ports:
       - "3000:3000"
     volumes:
@@ -66,17 +66,48 @@ services:
     container_name: btrc-v3-nginx
     restart: unless-stopped
     ports:
-      - "8080:80"
+      - "9000:9000"
     volumes:
       - ./public:/usr/share/nginx/html:ro
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       - metabase
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost/health"]
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+    networks:
+      - btrc-v3
+
+  # ─── React Regional Dashboard ──────────────────────────────────────────────
+  react-regional:
+    build:
+      context: ./btrc-react-regional
+      dockerfile: Dockerfile
+      target: development
+    container_name: btrc-v3-react-regional
+    restart: unless-stopped
+    ports:
+      - "5180:5173"
+    volumes:
+      - ./btrc-react-regional/src:/app/src:ro
+      - ./btrc-react-regional/public:/app/public:ro
+      - ./btrc-react-regional/.env.docker:/app/.env:ro
+      - ./btrc-react-regional/vite.config.js:/app/vite.config.js:ro
+      - ./btrc-react-regional/index.html:/app/index.html:ro
+    environment:
+      - NODE_ENV=development
+      - VITE_METABASE_URL=http://localhost:3000
+    depends_on:
+      metabase:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:5173"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     networks:
       - btrc-v3
 

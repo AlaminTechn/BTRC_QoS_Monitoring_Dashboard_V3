@@ -168,7 +168,7 @@ If JavaScript click handlers don't work (due to browser restrictions):
 
    You should see:
    ```
-   btrc-v3-nginx   nginx:alpine   Up   0.0.0.0:9000->80/tcp
+   btrc-v3-nginx   nginx:alpine   Up   0.0.0.0:9000->9000/tcp
    ```
 
 3. **Access the dashboard**
@@ -288,7 +288,7 @@ This means JavaScript can't access iframe content. The drill-down will still wor
 ```yaml
 nginx:
   ports:
-    - "9001:80"  # Changed from 9000 to 9001
+    - "9001:9000"  # Changed from 9000 to 9001
 ```
 
 **Restart:**
@@ -342,7 +342,7 @@ For production deployment on a server:
    ```yaml
    nginx:
      ports:
-       - "80:80"  # Use standard HTTP port
+       - "80:9000"  # Map standard HTTP port to nginx port 9000
    ```
 
 3. **Add domain and SSL (recommended):**

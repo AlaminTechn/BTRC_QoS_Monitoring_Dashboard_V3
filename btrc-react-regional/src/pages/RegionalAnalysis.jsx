@@ -4,11 +4,12 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Row, Col, Card, Spin, Alert, Breadcrumb, Space, Divider } from 'antd';
+import { Row, Col, Card, Spin, Alert, Breadcrumb, Space, Divider, Button } from 'antd';
 import { HomeOutlined, EnvironmentOutlined, DatabaseOutlined } from '@ant-design/icons';
 import ChoroplethMap from '../components/maps/ChoroplethMap';
 import BarChart from '../components/charts/BarChart';
 import DataTable from '../components/charts/DataTable';
+import MiniBar from '../components/charts/MiniBar';
 import FilterPanel from '../components/filters/FilterPanel';
 import useMetabaseData from '../hooks/useMetabaseData';
 import {
@@ -32,13 +33,29 @@ const RegionalAnalysis = () => {
   const [divisionGeoJSON, setDivisionGeoJSON] = useState(null);
   const [districtGeoJSON, setDistrictGeoJSON] = useState(null);
 
-  // Fetch violation data (Card 87)
+  // Fetch violation data (Card 87) for division-level aggregation
   // Data format: [Division, District, Total, Critical, High, Medium, Low]
   const {
     data: violationData,
-    loading: dataLoading,
-    error: dataError,
+    loading: violationLoading,
+    error: violationError,
   } = useMetabaseData(87, filters);
+
+  // Fetch district ranking data (Card 80) for district table
+  // Data format: [Division, District, Avg Download, Avg Upload, Avg Latency, Availability %, ISP Count, PoP Count]
+  const {
+    data: districtRankingData,
+    loading: districtLoading,
+    error: districtError,
+  } = useMetabaseData(80, filters);
+
+  // Fetch ISP Performance data from Card 81 (R2.3 ISP Performance by Area)
+  // Data format: [Division, District, ISP, License Category, PoP Count,
+  //               Avg Download, Avg Upload, Avg Latency, Availability %, Violations]
+  const {
+    data: ispPerformanceData,
+    loading: ispPerformanceLoading,
+  } = useMetabaseData(81, filters);
 
   // Aggregate data for divisions (sum by division)
   const divisionData = React.useMemo(() => {
@@ -68,28 +85,17 @@ const RegionalAnalysis = () => {
     };
   }, [violationData]);
 
-  // District data (use raw data)
+  // District ranking data (Card 80) - filtered by Metabase query
+  // Format: [Division, District, Avg Download, Avg Upload, Avg Latency, Availability %, ISP Count, PoP Count]
   const districtData = React.useMemo(() => {
-    if (!violationData || !violationData.rows) return null;
-
-    // If division filter is set, filter districts
-    let rows = violationData.rows;
-    if (filters.division) {
-      rows = rows.filter((row) => row[0] === filters.division);
-    }
-
-    // Format: [District, Total]
-    const districtRows = rows.map((row) => [row[1], row[2]]);
+    if (!districtRankingData || !districtRankingData.rows) return null;
 
     return {
-      rows: districtRows,
-      columns: [
-        { name: 'District', displayName: 'District', type: 'type/Text' },
-        { name: 'Total', displayName: 'Total Violations', type: 'type/BigInteger' },
-      ],
-      metadata: { rowCount: districtRows.length },
+      rows: districtRankingData.rows,
+      columns: districtRankingData.columns,
+      metadata: { rowCount: districtRankingData.rows.length },
     };
-  }, [violationData, filters.division]);
+  }, [districtRankingData]);
 
   // Load GeoJSON files
   useEffect(() => {
@@ -154,8 +160,14 @@ const RegionalAnalysis = () => {
     districtData && districtData.rows
       ? districtData.rows.map((row, index) => ({
           key: `dist-${index}`,
-          0: row[0], // District name
-          1: row[1], // Total violations
+          0: row[0], // Division
+          1: row[1], // District
+          2: row[2], // Avg Download (Mbps)
+          3: row[3], // Avg Upload (Mbps)
+          4: row[4], // Avg Latency (ms)
+          5: row[5], // Availability (%)
+          6: row[6], // ISP Count
+          7: row[7], // PoP Count
         }))
       : [];
 
@@ -187,7 +199,18 @@ const RegionalAnalysis = () => {
     ? [...new Set(districtData.rows.map((row) => row[0]))].sort()
     : [];
 
-  const isps = []; // ISP data would come from a separate card
+  // Extract unique ISPs from Card 81 (column 2 = ISP)
+  const isps = React.useMemo(() => {
+    if (!ispPerformanceData?.rows) return [];
+
+    const ispNames = ispPerformanceData.rows.map((row) => row[2]).filter(Boolean);
+    const uniqueIsps = [...new Set(ispNames)].sort();
+
+    console.log('Card 81 raw data sample:', ispPerformanceData.rows.slice(0, 3));
+    console.log('Extracted ISP names:', uniqueIsps);
+
+    return uniqueIsps;
+  }, [ispPerformanceData]);
 
   // Handle filter changes
   const handleFilterChange = (newFilters) => {
@@ -234,28 +257,328 @@ const RegionalAnalysis = () => {
     }
   };
 
-  // Table columns
+  // Table columns with sorting
   const divisionColumns = [
-    { title: 'Division', dataIndex: 0, key: 'division', width: 150 },
+    {
+      title: 'Division',
+      dataIndex: 0,
+      key: 'division',
+      width: 200,
+      sorter: (a, b) => (a[0] || '').localeCompare(b[0] || ''),
+      render: (value) => (
+        <span style={{ color: '#1890ff', cursor: 'pointer', fontWeight: 500 }}>
+          {value}
+        </span>
+      ),
+    },
     {
       title: 'Total Violations',
       dataIndex: 1,
       key: 'total',
       width: 150,
-      render: (value) => value || 0,
+      sorter: (a, b) => (a[1] || 0) - (b[1] || 0),
+      defaultSortOrder: 'descend',
+      render: (value) => (
+        <span style={{ fontWeight: 'bold', color: value > 20 ? '#ef4444' : '#6b7280' }}>
+          {value || 0}
+        </span>
+      ),
     },
   ];
 
   const districtColumns = [
-    { title: 'District', dataIndex: 0, key: 'district', width: 150 },
     {
-      title: 'Total Violations',
+      title: 'Division',
+      dataIndex: 0,
+      key: 'division',
+      width: 120,
+      sorter: (a, b) => (a[0] || '').localeCompare(b[0] || ''),
+      render: (value) => (
+        <span style={{ color: '#1890ff', fontWeight: 500 }}>
+          {value}
+        </span>
+      ),
+    },
+    {
+      title: 'District',
       dataIndex: 1,
-      key: 'total',
+      key: 'district',
       width: 150,
-      render: (value) => value || 0,
+      sorter: (a, b) => (a[1] || '').localeCompare(b[1] || ''),
+      render: (value) => (
+        <span style={{ color: '#1890ff', cursor: 'pointer', fontWeight: 500 }}>
+          {value}
+        </span>
+      ),
+    },
+    {
+      title: 'Avg Download (Mbps)',
+      dataIndex: 2,
+      key: 'download',
+      width: 180,
+      sorter: (a, b) => (a[2] || 0) - (b[2] || 0),
+      defaultSortOrder: 'descend',
+      render: (value) => {
+        const numVal = typeof value === 'number' ? value : parseFloat(value);
+        if (isNaN(numVal)) return 'N/A';
+        return (
+          <MiniBar
+            value={numVal}
+            max={50}
+            color="#509ee3"
+            width={60}
+            formatValue={(val) => val.toFixed(2)}
+          />
+        );
+      },
+    },
+    {
+      title: 'Avg Upload (Mbps)',
+      dataIndex: 3,
+      key: 'upload',
+      width: 170,
+      sorter: (a, b) => (a[3] || 0) - (b[3] || 0),
+      render: (value) => {
+        const numVal = typeof value === 'number' ? value : parseFloat(value);
+        if (isNaN(numVal)) return 'N/A';
+        return (
+          <MiniBar
+            value={numVal}
+            max={15}
+            color="#509ee3"
+            width={60}
+            formatValue={(val) => val.toFixed(2)}
+          />
+        );
+      },
+    },
+    {
+      title: 'Avg Latency (ms)',
+      dataIndex: 4,
+      key: 'latency',
+      width: 160,
+      sorter: (a, b) => (a[4] || 0) - (b[4] || 0),
+      render: (value) => {
+        const numVal = typeof value === 'number' ? value : parseFloat(value);
+        if (isNaN(numVal)) return 'N/A';
+        return (
+          <MiniBar
+            value={numVal}
+            max={100}
+            color="#509ee3"
+            width={60}
+            formatValue={(val) => val.toFixed(1)}
+          />
+        );
+      },
+    },
+    {
+      title: 'Availability (%)',
+      dataIndex: 5,
+      key: 'availability',
+      width: 170,
+      sorter: (a, b) => (a[5] || 0) - (b[5] || 0),
+      render: (value) => {
+        const numVal = typeof value === 'number' ? value : parseFloat(value);
+        const percent = isNaN(numVal) ? 0 : numVal;
+        const color = percent >= 95 ? '#10b981' : percent >= 90 ? '#f59e0b' : '#ef4444';
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ minWidth: '50px', textAlign: 'right', fontSize: '13px', color, fontWeight: 'bold' }}>
+              {numVal.toFixed(2)}%
+            </span>
+            <div
+              style={{
+                width: '60px',
+                height: '16px',
+                backgroundColor: '#f0f0f0',
+                borderRadius: '2px',
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  width: `${percent}%`,
+                  height: '100%',
+                  backgroundColor: color,
+                }}
+              />
+            </div>
+          </div>
+        );
+      },
     },
   ];
+
+  // ISP Performance columns (Card 81: Division, District, ISP, License Category,
+  // PoP Count, Avg Download, Avg Upload, Avg Latency, Availability %, Violations)
+  const ispPerformanceColumns = [
+    {
+      title: 'ISP',
+      dataIndex: 2,
+      key: 'isp',
+      width: 180,
+      fixed: 'left',
+      sorter: (a, b) => (a[2] || '').localeCompare(b[2] || ''),
+      render: (value) => (
+        <span style={{ color: '#1890ff', fontWeight: 500 }}>
+          {value}
+        </span>
+      ),
+    },
+    {
+      title: 'License Category',
+      dataIndex: 3,
+      key: 'license',
+      width: 150,
+      sorter: (a, b) => (a[3] || '').localeCompare(b[3] || ''),
+    },
+    {
+      title: 'PoP Count',
+      dataIndex: 4,
+      key: 'pop_count',
+      width: 100,
+      sorter: (a, b) => (a[4] || 0) - (b[4] || 0),
+      render: (value) => value || 0,
+    },
+    {
+      title: 'Avg Download (Mbps)',
+      dataIndex: 5,
+      key: 'download',
+      width: 180,
+      sorter: (a, b) => (a[5] || 0) - (b[5] || 0),
+      defaultSortOrder: 'descend',
+      render: (value) => {
+        const numVal = typeof value === 'number' ? value : parseFloat(value);
+        if (isNaN(numVal)) return 'N/A';
+        return (
+          <MiniBar
+            value={numVal}
+            max={50}
+            color="#509ee3"
+            width={60}
+            formatValue={(val) => val.toFixed(2)}
+          />
+        );
+      },
+    },
+    {
+      title: 'Avg Upload (Mbps)',
+      dataIndex: 6,
+      key: 'upload',
+      width: 170,
+      sorter: (a, b) => (a[6] || 0) - (b[6] || 0),
+      render: (value) => {
+        const numVal = typeof value === 'number' ? value : parseFloat(value);
+        if (isNaN(numVal)) return 'N/A';
+        return (
+          <MiniBar
+            value={numVal}
+            max={15}
+            color="#509ee3"
+            width={60}
+            formatValue={(val) => val.toFixed(2)}
+          />
+        );
+      },
+    },
+    {
+      title: 'Avg Latency (ms)',
+      dataIndex: 7,
+      key: 'latency',
+      width: 160,
+      sorter: (a, b) => (a[7] || 0) - (b[7] || 0),
+      render: (value) => {
+        const numVal = typeof value === 'number' ? value : parseFloat(value);
+        if (isNaN(numVal)) return 'N/A';
+        return (
+          <MiniBar
+            value={numVal}
+            max={100}
+            color="#509ee3"
+            width={60}
+            formatValue={(val) => val.toFixed(1)}
+          />
+        );
+      },
+    },
+    {
+      title: 'Availability (%)',
+      dataIndex: 8,
+      key: 'availability',
+      width: 170,
+      sorter: (a, b) => (a[8] || 0) - (b[8] || 0),
+      render: (value) => {
+        const numVal = typeof value === 'number' ? value : parseFloat(value);
+        const percent = isNaN(numVal) ? 0 : numVal;
+        const color = percent >= 95 ? '#10b981' : percent >= 90 ? '#f59e0b' : '#ef4444';
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ minWidth: '50px', textAlign: 'right', fontSize: '13px', color, fontWeight: 'bold' }}>
+              {numVal.toFixed(2)}%
+            </span>
+            <div
+              style={{
+                width: '60px',
+                height: '16px',
+                backgroundColor: '#f0f0f0',
+                borderRadius: '2px',
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  width: `${percent}%`,
+                  height: '100%',
+                  backgroundColor: color,
+                }}
+              />
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      title: 'Violations',
+      dataIndex: 9,
+      key: 'violations',
+      width: 130,
+      sorter: (a, b) => (a[9] || 0) - (b[9] || 0),
+      render: (value) => {
+        const numVal = value || 0;
+        const color = numVal > 5 ? '#ef4444' : '#509ee3';
+        return (
+          <MiniBar
+            value={numVal}
+            max={10}
+            color={color}
+            width={60}
+            formatValue={(val) => val}
+          />
+        );
+      },
+    },
+  ];
+
+  // ISP Performance table data (automatically filtered by Metabase query)
+  const ispPerformanceTableData = React.useMemo(() => {
+    if (!ispPerformanceData || !ispPerformanceData.rows) return [];
+
+    // Data is already filtered by Division/District/ISP via Metabase template tags
+    return ispPerformanceData.rows.map((row, index) => ({
+      key: `isp-perf-${index}`,
+      0: row[0],  // Division
+      1: row[1],  // District
+      2: row[2],  // ISP
+      3: row[3],  // License Category
+      4: row[4],  // PoP Count
+      5: row[5],  // Avg Download (Mbps)
+      6: row[6],  // Avg Upload (Mbps)
+      7: row[7],  // Avg Latency (ms)
+      8: row[8],  // Availability (%)
+      9: row[9],  // Violations
+    }));
+  }, [ispPerformanceData]);
 
   return (
     <div style={{ background: '#f0f2f5', width: '100%', minHeight: '70vh' }}>
@@ -318,15 +641,15 @@ const RegionalAnalysis = () => {
             divisions={divisions}
             districts={districts}
             isps={isps}
-            loading={dataLoading}
+            loading={violationLoading || districtLoading || ispPerformanceLoading}
           />
         </div>
 
         {/* Error alerts */}
-        {dataError && (
+        {(violationError || districtError) && (
           <Alert
             message="Error Loading Data"
-            description={dataError?.message}
+            description={violationError?.message || districtError?.message}
             type="error"
             closable
             showIcon
@@ -355,7 +678,7 @@ const RegionalAnalysis = () => {
                   bodyStyle={{ padding: '24px' }}
                   style={{ height: '100%', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
                 >
-                  {dataLoading ? (
+                  {violationLoading ? (
                     <div style={{ textAlign: 'center', padding: '100px 0' }}>
                       <Spin size="large" />
                     </div>
@@ -377,7 +700,7 @@ const RegionalAnalysis = () => {
                   bodyStyle={{ padding: '24px' }}
                   style={{ height: '100%', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
                 >
-                  {dataLoading ? (
+                  {violationLoading ? (
                     <div style={{ textAlign: 'center', padding: '100px 0' }}>
                       <Spin size="large" />
                     </div>
@@ -408,9 +731,13 @@ const RegionalAnalysis = () => {
                 <DataTable
                   columns={divisionColumns}
                   dataSource={divisionTableData}
-                  loading={dataLoading}
+                  loading={violationLoading}
                   pageSize={8}
                   showPagination={false}
+                  onRowClick={(record) => {
+                    // Drill down into division
+                    setFilters({ ...filters, division: record[0], district: undefined });
+                  }}
                 />
               </Card>
             </Col>
@@ -419,7 +746,7 @@ const RegionalAnalysis = () => {
         )}
 
         {/* District Level */}
-        {filters.division && (
+        {filters.division && !filters.district && (
           <>
             {/* Section Header */}
             <div style={{ marginBottom: 24 }}>
@@ -439,7 +766,7 @@ const RegionalAnalysis = () => {
                   bodyStyle={{ padding: '24px' }}
                   style={{ height: '100%', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
                 >
-                  {dataLoading ? (
+                  {districtLoading ? (
                     <div style={{ textAlign: 'center', padding: '100px 0' }}>
                       <Spin size="large" />
                     </div>
@@ -456,50 +783,78 @@ const RegionalAnalysis = () => {
 
               <Col xs={24} lg={12}>
                 <Card
-                  title="District Violation Ranking"
+                  title="R2.4 District Ranking Table"
                   bordered={false}
                   bodyStyle={{ padding: '24px' }}
                   style={{ height: '100%', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
                 >
-                  {dataLoading ? (
+                  {districtLoading ? (
                     <div style={{ textAlign: 'center', padding: '100px 0' }}>
                       <Spin size="large" />
                     </div>
                   ) : (
-                    <BarChart
-                      categories={districtChartData.categories}
-                      values={districtChartData.values}
-                      title={`Total Violations by District (${filters.division})`}
-                      yAxisLabel="Total Violations"
-                      seriesName="Violations"
-                      onBarClick={handleBarClick}
-                      height={500}
-                      color="#ef4444"
+                    <DataTable
+                      columns={districtColumns}
+                      dataSource={districtTableData}
+                      loading={districtLoading}
+                      pageSize={10}
+                      onRowClick={(record) => {
+                        // Drill down into district
+                        setFilters({ ...filters, district: record[1] });
+                      }}
+                      scroll={{ x: 1200 }}
                     />
                   )}
                 </Card>
               </Col>
             </Row>
-
-            <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
-              <Col xs={24}>
-                <Card
-                  title="District Violation Summary"
-                  bordered={false}
-                  bodyStyle={{ padding: '24px' }}
-                  style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
-                >
-                <DataTable
-                  columns={districtColumns}
-                  dataSource={districtTableData}
-                  loading={dataLoading}
-                  pageSize={10}
-                />
-              </Card>
-            </Col>
-          </Row>
         </>
         )}
+
+        {/* R2.3: ISP Performance by Area (ALWAYS VISIBLE at bottom, filtered by division/district) */}
+        <div style={{ marginTop: 32, marginBottom: 24 }}>
+          <Divider orientation="left" style={{ fontSize: 20, fontWeight: 'bold' }}>
+            R2.3 ISP Performance by Area
+          </Divider>
+          <p style={{ color: '#6b7280', marginLeft: 24, marginTop: -12 }}>
+            {filters.district
+              ? `ISP performance in ${filters.district}, ${filters.division}`
+              : filters.division
+              ? `ISP performance in ${filters.division} division`
+              : 'ISP performance nationwide'}
+          </p>
+        </div>
+
+        <Row gutter={[16, 16]}>
+          <Col xs={24}>
+            <Card
+              title={
+                filters.district
+                  ? `ISPs in ${filters.district}`
+                  : filters.division
+                  ? `ISPs in ${filters.division}`
+                  : 'All ISPs Nationwide'
+              }
+              bordered={false}
+              bodyStyle={{ padding: '24px' }}
+              style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
+            >
+              {ispPerformanceLoading ? (
+                <div style={{ textAlign: 'center', padding: '100px 0' }}>
+                  <Spin size="large" />
+                </div>
+              ) : (
+                <DataTable
+                  columns={ispPerformanceColumns}
+                  dataSource={ispPerformanceTableData}
+                  loading={ispPerformanceLoading}
+                  pageSize={15}
+                  scroll={{ x: 1400 }}
+                />
+              )}
+            </Card>
+          </Col>
+        </Row>
 
       </div>
       {/* End Page Container */}

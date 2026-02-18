@@ -102,11 +102,11 @@ const ChoroplethMap = ({
     const name = feature.properties.shapeName || feature.properties.name || 'Unknown';
     const value = feature.properties.value || 0;
 
-    // Tooltip
+    // Tooltip - show violations as integer
     layer.bindTooltip(
       `<div style="padding: 8px;">
         <strong>${name}</strong><br/>
-        Value: ${value.toFixed(2)}
+        Violations: ${Math.round(value)}
       </div>`,
       {
         permanent: false,

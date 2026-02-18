@@ -7,7 +7,6 @@ import React, { useState } from 'react';
 import { Row, Col, Card, Spin, Alert, Divider, Space } from 'antd';
 import { DatabaseOutlined, CheckCircleOutlined, WarningOutlined, AlertOutlined } from '@ant-design/icons';
 import ScalarCard from '../components/charts/ScalarCard';
-import LineChart from '../components/charts/LineChart';
 import DataTable from '../components/charts/DataTable';
 import FilterPanel from '../components/filters/FilterPanel';
 import useMetabaseData from '../hooks/useMetabaseData';
@@ -26,7 +25,7 @@ const SLAMonitoring = () => {
   const { data: ispsBelowData, loading: loading78, error: error78 } = useMetabaseData(78, filters);
   const { data: packageData, loading: loading79, error: error79 } = useMetabaseData(79, filters);
   const { data: trendData, loading: loading80, error: error80 } = useMetabaseData(80, filters);
-  const { data: scorecardData, loading: loading81, error: error81 } = useMetabaseData(81, filters);
+  // Card 81 moved to R2.2 Regional Analysis tab
 
   // Combine loading and error states
   const dataLoading = loading76 || loading77 || loading78 || loading79 || loading80 || loading81;
@@ -37,15 +36,14 @@ const SLAMonitoring = () => {
   const criticalCount = criticalData?.rows?.[0]?.[0] || 0;
   const ispsBelowThreshold = ispsBelowData?.rows?.[0]?.[0] || 0;
 
-  // Transform trend data for line chart
-  const trendChartData = React.useMemo(() => {
-    if (!trendData || !trendData.rows || trendData.rows.length === 0) {
-      return [];
-    }
+  // Transform trend data for table
+  const trendTableData = React.useMemo(() => {
+    if (!trendData || !trendData.rows) return [];
 
-    return trendData.rows.map(row => ({
-      x: row[0], // Date
-      y: row[1], // Compliance %
+    return trendData.rows.map((row, index) => ({
+      key: `trend-${index}`,
+      0: row[0], // Date
+      1: row[1], // Compliance %
     }));
   }, [trendData]);
 
@@ -62,31 +60,10 @@ const SLAMonitoring = () => {
     }));
   }, [packageData]);
 
-  // Transform scorecard data for table
-  const scorecardTableData = React.useMemo(() => {
-    if (!scorecardData || !scorecardData.rows) return [];
-
-    return scorecardData.rows.map((row, index) => ({
-      key: `isp-${index}`,
-      0: row[0], // ISP Name
-      1: row[1], // Compliance %
-      2: row[2], // Violations Count
-      3: row[3], // Status
-    }));
-  }, [scorecardData]);
-
-  // Get unique values for filters
-  const divisions = scorecardData?.rows
-    ? [...new Set(scorecardData.rows.map(row => row[4]).filter(Boolean))].sort()
-    : [];
-
-  const districts = scorecardData?.rows
-    ? [...new Set(scorecardData.rows.map(row => row[5]).filter(Boolean))].sort()
-    : [];
-
-  const isps = scorecardData?.rows
-    ? [...new Set(scorecardData.rows.map(row => row[0]).filter(Boolean))].sort()
-    : [];
+  // Filter options (empty for SLA Monitoring tab - filters handled in Regional Analysis)
+  const divisions = [];
+  const districts = [];
+  const isps = [];
 
   // Handle filter changes
   const handleFilterChange = (newFilters) => {
@@ -118,24 +95,15 @@ const SLAMonitoring = () => {
     }},
   ];
 
-  const scorecardColumns = [
-    { title: 'ISP', dataIndex: 0, key: 'isp', width: 250, fixed: 'left' },
-    { title: 'Compliance %', dataIndex: 1, key: 'compliance', width: 120, render: (val) => {
+  // Scorecard columns moved to R2.2 Regional Analysis tab
+
+  const trendColumns = [
+    { title: 'Date', dataIndex: 0, key: 'date', width: 200 },
+    { title: 'SLA Compliance %', dataIndex: 1, key: 'compliance', width: 150, render: (val) => {
       const numVal = typeof val === 'number' ? val : parseFloat(val);
       const percent = isNaN(numVal) ? 0 : numVal;
       const color = percent >= 90 ? '#10b981' : percent >= 70 ? '#f59e0b' : '#ef4444';
-      return <span style={{ color, fontWeight: 'bold' }}>{typeof val === 'number' ? val.toFixed(1) : percent.toFixed(1)}%</span>;
-    }},
-    { title: 'Violations', dataIndex: 2, key: 'violations', width: 120, render: (val) => val || 0 },
-    { title: 'Status', dataIndex: 3, key: 'status', width: 150, render: (val) => {
-      const status = val || 'Unknown';
-      let color = '#999';
-      if (typeof status === 'string') {
-        if (status.toLowerCase().includes('compliant')) color = '#10b981';
-        else if (status.toLowerCase().includes('warning')) color = '#f59e0b';
-        else if (status.toLowerCase().includes('critical')) color = '#ef4444';
-      }
-      return <span style={{ color, fontWeight: 'bold' }}>{status}</span>;
+      return <span style={{ color, fontWeight: 'bold' }}>{typeof val === 'number' ? val.toFixed(2) : percent.toFixed(2)}%</span>;
     }},
   ];
 
@@ -254,7 +222,7 @@ const SLAMonitoring = () => {
             style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
           >
             {loading80 ? (
-              <div style={{ textAlign: 'center', padding: '100px 0' }}>
+              <div style={{ textAlign: 'center', padding: '60px 0' }}>
                 <Spin size="large" />
               </div>
             ) : error80 ? (
@@ -265,16 +233,11 @@ const SLAMonitoring = () => {
                 showIcon
               />
             ) : (
-              <LineChart
-                data={trendChartData}
-                series={['Compliance %']}
-                xAxisLabel="Date"
-                yAxisLabel="Compliance %"
-                height={400}
-                colors={['#3b82f6']}
-                smooth={true}
-                area={true}
-                legend={false}
+              <DataTable
+                columns={trendColumns}
+                dataSource={trendTableData}
+                loading={loading80}
+                pageSize={15}
               />
             )}
           </Card>
@@ -319,50 +282,7 @@ const SLAMonitoring = () => {
         </Col>
       </Row>
 
-      {/* ISP Scorecard Section */}
-      <div style={{ marginTop: 32, marginBottom: 24 }}>
-        <Divider orientation="left" style={{ fontSize: 18, fontWeight: 'bold' }}>
-          ISP Performance Scorecard
-        </Divider>
-      </div>
-
-      <Row gutter={[16, 16]}>
-        <Col xs={24}>
-          <Card
-            title="ISP Performance Ranking"
-            bordered={false}
-            bodyStyle={{ padding: '24px' }}
-            style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
-            extra={
-              <Space size={16}>
-                <span style={{ fontSize: 12, color: '#10b981' }}>● Compliant (≥90%)</span>
-                <span style={{ fontSize: 12, color: '#f59e0b' }}>● Warning (70-89%)</span>
-                <span style={{ fontSize: 12, color: '#ef4444' }}>● Critical (&lt;70%)</span>
-              </Space>
-            }
-          >
-            {loading81 ? (
-              <div style={{ textAlign: 'center', padding: '60px 0' }}>
-                <Spin size="large" />
-              </div>
-            ) : error81 ? (
-              <Alert
-                message="Failed to load ISP scorecard"
-                description={error81.message}
-                type="warning"
-                showIcon
-              />
-            ) : (
-              <DataTable
-                columns={scorecardColumns}
-                dataSource={scorecardTableData}
-                loading={loading81}
-                pageSize={15}
-              />
-            )}
-          </Card>
-        </Col>
-      </Row>
+      {/* ISP Performance Scorecard moved to R2.2 Regional Analysis tab */}
     </div>
   );
 };

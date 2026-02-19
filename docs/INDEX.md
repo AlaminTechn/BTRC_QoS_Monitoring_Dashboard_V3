@@ -7,6 +7,18 @@
 
 ## 📚 Quick Navigation
 
+### ⭐ **NEW: Comprehensive Development Guides** ⭐
+**Complete step-by-step guides for React + Metabase + Deployment**
+
+1. [**COMPREHENSIVE_GUIDE_INDEX.md**](COMPREHENSIVE_GUIDE_INDEX.md) - 📖 **START HERE** - Master guide index
+2. [**REACT_SETUP_GUIDE.md**](REACT_SETUP_GUIDE.md) - Complete React frontend setup
+3. [**METABASE_BACKEND_INTEGRATION.md**](METABASE_BACKEND_INTEGRATION.md) - Metabase API integration
+4. [**DEVELOPMENT_WORKFLOW.md**](DEVELOPMENT_WORKFLOW.md) - Daily development workflow
+5. [**COMPLETE_DEPLOYMENT_GUIDE.md**](COMPLETE_DEPLOYMENT_GUIDE.md) - Production deployment
+6. [**TROUBLESHOOTING_GUIDE.md**](TROUBLESHOOTING_GUIDE.md) - Fix common issues
+
+---
+
 ### 🚀 **Getting Started**
 1. [QUICK_START.md](QUICK_START.md) - Quick start guide
 2. [EXTRACT_AND_RUN.md](EXTRACT_AND_RUN.md) - Extract and run the archive
@@ -133,7 +145,8 @@
 
 ## 📊 Documentation Stats
 
-- **Total Documents:** 35
+- **Total Documents:** 41
+- **Comprehensive Development Guides:** 6 (NEW!)
 - **Quick Start Guides:** 3
 - **Implementation Guides:** 8
 - **Technical References:** 12
@@ -144,12 +157,20 @@
 
 ## 🔍 Find Documentation By Topic
 
+### **Development (React + Metabase)** ⭐ NEW
+- COMPREHENSIVE_GUIDE_INDEX.md (Start here!)
+- REACT_SETUP_GUIDE.md
+- METABASE_BACKEND_INTEGRATION.md
+- DEVELOPMENT_WORKFLOW.md
+- TROUBLESHOOTING_GUIDE.md
+
 ### **Authentication**
 - METABASE_AUTHENTICATION_GUIDE.md
 - PERMISSION_SCENARIOS_GUIDE.md
 - AUTHENTICATION_AND_CACHING_QUICK_REFERENCE.md
 
 ### **Deployment**
+- COMPLETE_DEPLOYMENT_GUIDE.md (Production deployment)
 - DEPLOYMENT_GUIDE.md
 - DOCKER_AUTO_INIT_GUIDE.md
 - QUICK_START.md

@@ -28,8 +28,8 @@ const SLAMonitoring = () => {
   // Card 81 moved to R2.2 Regional Analysis tab
 
   // Combine loading and error states
-  const dataLoading = loading76 || loading77 || loading78 || loading79 || loading80 || loading81;
-  const hasError = error76 || error77 || error78 || error79 || error80 || error81;
+  const dataLoading = loading76 || loading77 || loading78 || loading79 || loading80;
+  const hasError = error76 || error77 || error78 || error79 || error80;
 
   // Extract scalar values
   const complianceRate = complianceData?.rows?.[0]?.[0] || 0;
@@ -153,7 +153,7 @@ const SLAMonitoring = () => {
       {/* Error Alert */}
       {hasError && (
         <Alert
-          message="Error Loading Data"
+          title="Error Loading Data"
           description="Some cards failed to load data from Metabase. Please check your connection and try again."
           type="error"
           closable
@@ -227,7 +227,7 @@ const SLAMonitoring = () => {
               </div>
             ) : error80 ? (
               <Alert
-                message="Failed to load trend data"
+                title="Failed to load trend data"
                 description={error80.message}
                 type="warning"
                 showIcon
@@ -265,7 +265,7 @@ const SLAMonitoring = () => {
               </div>
             ) : error79 ? (
               <Alert
-                message="Failed to load package data"
+                title="Failed to load package data"
                 description={error79.message}
                 type="warning"
                 showIcon

@@ -38,7 +38,7 @@ const ViolationReporting = () => {
       </Card>
 
       <Alert
-        message="Coming Soon"
+        title="Coming Soon"
         description="This tab will display recent violations, violation trends by severity, top violating ISPs, violation patterns by time of day, resolution time metrics, and violation heatmaps. Implementation includes Cards 88-93 from Metabase."
         type="info"
         showIcon

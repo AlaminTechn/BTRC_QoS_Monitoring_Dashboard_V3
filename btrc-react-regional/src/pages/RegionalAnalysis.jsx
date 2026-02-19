@@ -648,7 +648,7 @@ const RegionalAnalysis = () => {
         {/* Error alerts */}
         {(violationError || districtError) && (
           <Alert
-            message="Error Loading Data"
+            title="Error Loading Data"
             description={violationError?.message || districtError?.message}
             type="error"
             closable

@@ -59,7 +59,12 @@ const RegionalAnalysis = () => {
 
   // Aggregate data for divisions (sum by division)
   const divisionData = React.useMemo(() => {
-    if (!violationData || !violationData.rows) return null;
+    if (!violationData || !violationData.rows) {
+      console.log('⚠️ No violation data available');
+      return null;
+    }
+
+    console.log('📊 Raw violation data:', violationData.rows.slice(0, 5));
 
     const divisionMap = {};
     violationData.rows.forEach((row) => {
@@ -75,6 +80,8 @@ const RegionalAnalysis = () => {
     // Convert to array format [[Division, Total], ...]
     const rows = Object.entries(divisionMap).map(([division, total]) => [division, total]);
 
+    console.log('📊 Aggregated division data:', rows);
+
     return {
       rows,
       columns: [
@@ -88,7 +95,13 @@ const RegionalAnalysis = () => {
   // District ranking data (Card 80) - filtered by Metabase query
   // Format: [Division, District, Avg Download, Avg Upload, Avg Latency, Availability %, ISP Count, PoP Count]
   const districtData = React.useMemo(() => {
-    if (!districtRankingData || !districtRankingData.rows) return null;
+    if (!districtRankingData || !districtRankingData.rows) {
+      console.log('⚠️ No district ranking data available');
+      return null;
+    }
+
+    console.log('📊 Raw district data (first 5 rows):', districtRankingData.rows.slice(0, 5));
+    console.log('📊 District names from Card 80:', districtRankingData.rows.map(r => r[1]));
 
     return {
       rows: districtRankingData.rows,
@@ -172,32 +185,81 @@ const RegionalAnalysis = () => {
       : [];
 
   // Transform data for maps
-  const divisionMapData =
-    divisionData && divisionData.rows && divisionGeoJSON
-      ? transformToGeoJSON(
-          applyNameMapping(divisionData.rows, DIVISION_NAME_MAPPING),
-          divisionGeoJSON,
-          'shapeName'
-        )
-      : null;
+  const divisionMapData = React.useMemo(() => {
+    if (!divisionData || !divisionData.rows || !divisionGeoJSON) {
+      console.log('⚠️ Division map data not ready', {
+        hasDivisionData: !!divisionData,
+        hasRows: !!divisionData?.rows,
+        hasGeoJSON: !!divisionGeoJSON
+      });
+      return null;
+    }
 
-  const districtMapData =
-    districtData && districtData.rows && districtGeoJSON
-      ? transformToGeoJSON(
-          applyNameMapping(districtData.rows, DISTRICT_NAME_MAPPING),
-          districtGeoJSON,
-          'shapeName'
-        )
-      : null;
+    console.log('🗺️ DIVISION MAP: Creating map data');
+    console.log('📊 Division data (all rows with values):');
+    divisionData.rows.forEach((row, i) => {
+      console.log(`  [${i}] ${row[0]} = ${row[1]} violations`);
+    });
+
+    const mappedRows = applyNameMapping(divisionData.rows, DIVISION_NAME_MAPPING, 0);
+    console.log('📊 Division data after mapping:');
+    mappedRows.forEach((row, i) => {
+      console.log(`  [${i}] ${row[0]} = ${row[1]} violations`);
+    });
+
+    const result = transformToGeoJSON(mappedRows, divisionGeoJSON, 'NAME_1', 0, 1);
+    console.log('🗺️ Division map GeoJSON features with values:');
+    result.features.forEach((f, i) => {
+      if (i < 10) { // Log first 10
+        console.log(`  ${f.properties.NAME_1 || f.properties.shapeName} = ${f.properties.value}`);
+      }
+    });
+
+    return result;
+  }, [divisionData, divisionGeoJSON]);
+
+  const districtMapData = React.useMemo(() => {
+    if (!districtData?.rows || !districtGeoJSON) return null;
+
+    console.log('🗺️ DISTRICT MAP: Creating map data');
+    console.log('📊 District data sample (first 3 rows):', districtData.rows.slice(0, 3));
+    console.log('📊 District names before mapping:', districtData.rows.map(r => r[1]).slice(0, 10));
+
+    // Apply name mapping to column 1 (District names)
+    const mappedRows = applyNameMapping(districtData.rows, DISTRICT_NAME_MAPPING, 1);
+    console.log('📊 District names after mapping:', mappedRows.map(r => r[1]).slice(0, 10));
+
+    return transformToGeoJSON(
+      mappedRows,
+      districtGeoJSON,
+      'shapeName',
+      1, // nameColumn: District name is in column 1
+      2  // valueColumn: Avg Download is in column 2 (for coloring)
+    );
+  }, [districtData, districtGeoJSON]);
 
   // Get unique divisions, districts, ISPs for filters
   const divisions = divisionData?.rows
     ? [...new Set(divisionData.rows.map((row) => row[0]))].sort()
     : [];
 
-  const districts = districtData?.rows
-    ? [...new Set(districtData.rows.map((row) => row[0]))].sort()
-    : [];
+  // Get districts filtered by selected division
+  const districts = React.useMemo(() => {
+    if (!districtData?.rows) return [];
+
+    let filteredRows = districtData.rows;
+
+    // Filter by selected division (Card 80: row[0] = Division, row[1] = District)
+    if (filters.division) {
+      filteredRows = filteredRows.filter((row) => row[0] === filters.division);
+      console.log(`🔍 Filtering districts by division: ${filters.division}, found ${filteredRows.length} districts`);
+    }
+
+    // Extract unique district names (column 1)
+    const uniqueDistricts = [...new Set(filteredRows.map((row) => row[1]))].sort();
+    console.log('📊 Available districts:', uniqueDistricts);
+    return uniqueDistricts;
+  }, [districtData, filters.division]);
 
   // Extract unique ISPs from Card 81 (column 2 = ISP)
   const isps = React.useMemo(() => {
@@ -227,12 +289,14 @@ const RegionalAnalysis = () => {
 
   // Handle region click on map
   const handleDivisionClick = (feature) => {
-    const divisionName = feature.properties.shapeName || feature.properties.name;
+    const divisionName = feature.properties.NAME_1 || feature.properties.shapeName || feature.properties.name;
+    console.log('🖱️ Division clicked:', divisionName, 'from feature:', feature.properties);
     // Reverse mapping
     const dbName =
       Object.keys(DIVISION_NAME_MAPPING).find(
         (key) => DIVISION_NAME_MAPPING[key] === divisionName
       ) || divisionName;
+    console.log('🖱️ Setting filter to division:', dbName);
     setFilters({ ...filters, division: dbName, district: undefined });
   };
 
@@ -686,6 +750,7 @@ const RegionalAnalysis = () => {
                     <ChoroplethMap
                       geojson={divisionMapData}
                       title="Division Violations"
+                      valueLabel="Violations"
                       onRegionClick={handleDivisionClick}
                       height="500px"
                     />
@@ -774,6 +839,7 @@ const RegionalAnalysis = () => {
                     <ChoroplethMap
                       geojson={districtMapData}
                       title={`Districts in ${filters.division}`}
+                      valueLabel="Avg Download (Mbps)"
                       onRegionClick={handleDistrictClick}
                       height="500px"
                     />

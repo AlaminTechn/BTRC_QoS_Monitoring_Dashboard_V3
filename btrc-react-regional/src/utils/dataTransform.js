@@ -63,28 +63,63 @@ export const transformToTable = (rows, columns) => {
  * @param {string} nameKey - Property key for matching (e.g., 'shapeName' or 'shapeISO')
  * @returns {object} GeoJSON with properties
  */
-export const transformToGeoJSON = (rows, geoJson, nameKey = 'shapeName') => {
+export const transformToGeoJSON = (rows, geoJson, nameKey = 'shapeName', nameColumn = 0, valueColumn = 1) => {
   if (!rows || rows.length === 0 || !geoJson) {
+    console.warn('⚠️ transformToGeoJSON: Missing data', { rows: rows?.length, geoJson: !!geoJson });
     return geoJson;
   }
 
-  // Create a map of name -> value
+  // Create a map of name -> row data (store entire row for tooltip)
   const dataMap = {};
   rows.forEach((row) => {
-    dataMap[row[0]] = row[1];
+    const name = row[nameColumn];
+    dataMap[name] = {
+      value: row[valueColumn], // Primary value for coloring
+      rowData: row, // Store entire row for detailed tooltip
+    };
   });
+
+  console.log('🗺️ Data map created:', Object.fromEntries(
+    Object.entries(dataMap).slice(0, 3).map(([k, v]) => [k, v.value])
+  ));
 
   // Clone GeoJSON and add data to properties
   const enhancedGeoJSON = JSON.parse(JSON.stringify(geoJson));
 
+  let matchedCount = 0;
+  let unmatchedFeatures = [];
+  const unmatchedDataNames = [];
+
   enhancedGeoJSON.features.forEach((feature) => {
     const name = feature.properties[nameKey];
     if (name && dataMap[name] !== undefined) {
-      feature.properties.value = dataMap[name];
+      feature.properties.value = dataMap[name].value;
+      feature.properties.rowData = dataMap[name].rowData; // Add full row data
+      matchedCount++;
+      console.log(`✅ Matched: ${name} = ${dataMap[name].value}`);
     } else {
       feature.properties.value = 0;
+      feature.properties.rowData = null;
+      unmatchedFeatures.push(name);
+      console.warn(`❌ Unmatched: ${name} (nameKey: ${nameKey})`);
     }
   });
+
+  // Check for data names that didn't match any GeoJSON features
+  Object.keys(dataMap).forEach(name => {
+    const found = enhancedGeoJSON.features.some(f => f.properties[nameKey] === name);
+    if (!found) {
+      unmatchedDataNames.push(name);
+    }
+  });
+
+  console.log(`🗺️ Matched ${matchedCount}/${enhancedGeoJSON.features.length} features`);
+  if (unmatchedFeatures.length > 0) {
+    console.warn('❌ GeoJSON features without data:', unmatchedFeatures.slice(0, 10));
+  }
+  if (unmatchedDataNames.length > 0) {
+    console.warn('❌ Data names without GeoJSON features:', unmatchedDataNames);
+  }
 
   return enhancedGeoJSON;
 };
@@ -108,19 +143,30 @@ export const DISTRICT_NAME_MAPPING = {
   Jhalakathi: 'Jhalokati',
   Moulvibazar: 'Maulvibazar',
   Netrokona: 'Netrakona',
+  // Add missing mappings for unmatched districts
+  Rajbari: 'Rajbari',
+  Sirajganj: 'Sirajganj',
+  Sunamganj: 'Sunamganj',
 };
 
 /**
  * Apply name mapping to data rows
  * @param {Array} rows - Metabase rows
  * @param {object} mapping - Name mapping object
+ * @param {number} nameColumn - Column index containing the name to map (default: 0)
  * @returns {Array} Mapped rows
  */
-export const applyNameMapping = (rows, mapping) => {
+export const applyNameMapping = (rows, mapping, nameColumn = 0) => {
+  if (!rows || rows.length === 0) return rows;
+
   return rows.map((row) => {
-    const name = row[0];
+    const name = row[nameColumn];
     const mappedName = mapping[name] || name;
-    return [mappedName, ...row.slice(1)];
+
+    // Replace the name at the specified column
+    const newRow = [...row];
+    newRow[nameColumn] = mappedName;
+    return newRow;
   });
 };
 

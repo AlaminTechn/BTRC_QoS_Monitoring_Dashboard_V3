@@ -80,6 +80,29 @@ class MetabaseAPI {
   }
 
   /**
+   * Get the currently authenticated user's profile + group memberships
+   * @returns {Promise<object>} { id, email, name, groupIds, groups }
+   */
+  async getCurrentUser() {
+    try {
+      const response = await this.client.get('/api/user/current');
+      const u = response.data;
+      const memberships = u.user_group_memberships || [];
+      return {
+        id:       u.id,
+        email:    u.email,
+        name:     u.common_name || `${u.first_name} ${u.last_name}`.trim(),
+        isAdmin:  u.is_superuser,
+        groupIds: memberships.map((g) => g.id),
+        groups:   memberships.map((g) => g.name).filter(Boolean),
+      };
+    } catch (error) {
+      console.error('Failed to fetch current user:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get dashboard structure
    * @param {number} dashboardId - Dashboard ID (6 for Regulatory)
    * @returns {Promise<object>} Dashboard structure

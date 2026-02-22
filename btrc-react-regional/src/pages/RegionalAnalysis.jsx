@@ -21,13 +21,21 @@ import {
   DISTRICT_NAME_MAPPING,
 } from '../utils/dataTransform';
 
-const RegionalAnalysis = ({ startDate = null, endDate = null }) => {
+const RegionalAnalysis = ({ startDate = null, endDate = null, lockedDivision = null, showISPFilter = true }) => {
   // Local geographic filter state
+  // If lockedDivision is set (Regional Officers), pre-lock their division
   const [filters, setFilters] = useState({
-    division: undefined,
+    division: lockedDivision || undefined,
     district: undefined,
     isp: undefined,
   });
+
+  // Keep division locked when lockedDivision prop changes
+  React.useEffect(() => {
+    if (lockedDivision) {
+      setFilters((prev) => ({ ...prev, division: lockedDivision }));
+    }
+  }, [lockedDivision]);
 
   // GeoJSON data
   const [divisionGeoJSON, setDivisionGeoJSON] = useState(null);
@@ -279,12 +287,13 @@ const RegionalAnalysis = ({ startDate = null, endDate = null }) => {
 
   // Handle filter changes
   const handleFilterChange = (newFilters) => {
-    setFilters(newFilters);
+    // Keep locked division even if filter panel tries to clear it
+    setFilters(lockedDivision ? { ...newFilters, division: lockedDivision } : newFilters);
   };
 
   const handleFilterReset = () => {
     setFilters({
-      division: undefined,
+      division: lockedDivision || undefined, // don't reset a locked division
       district: undefined,
       isp: undefined,
     });

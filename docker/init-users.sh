@@ -1,19 +1,16 @@
 #!/bin/bash
-# Metabase User Initialization Script
-# Runs automatically after Metabase starts
+# Metabase User Initialization
+# Triggered automatically by Docker after Metabase passes its healthcheck.
+# The Python script polls /api/health internally as an extra safety net.
 
 set -e
 
 echo "=================================="
-echo "Metabase User Initialization"
+echo "  BTRC Metabase User Initialization"
 echo "=================================="
 
-# Wait for Metabase to be fully ready
-echo "Waiting for Metabase to be ready..."
-sleep 60  # Give Metabase time to fully start
+python3 /scripts/init_metabase_users.py
 
-# Run Python initialization script
-echo "Running user setup script..."
-python3 /scripts/init_users_permissions.py
-
-echo "✅ User initialization complete!"
+echo "=================================="
+echo "  Initialization complete"
+echo "=================================="

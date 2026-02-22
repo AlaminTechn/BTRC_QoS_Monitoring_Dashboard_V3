@@ -3,12 +3,12 @@ FROM python:3.10-slim
 # Install required packages
 RUN pip install --no-cache-dir requests==2.31.0
 
-# Copy initialization script
-COPY init_users_permissions.py /scripts/init_users_permissions.py
+# Copy initialization scripts
+COPY init_metabase_users.py /scripts/init_metabase_users.py
 COPY docker/init-users.sh /scripts/init-users.sh
 
 # Make scripts executable
-RUN chmod +x /scripts/init-users.sh /scripts/init_users_permissions.py
+RUN chmod +x /scripts/init-users.sh /scripts/init_metabase_users.py
 
 WORKDIR /scripts
 

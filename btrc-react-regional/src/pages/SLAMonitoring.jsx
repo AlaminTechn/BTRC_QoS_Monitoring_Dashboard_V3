@@ -11,20 +11,27 @@ import DataTable from '../components/charts/DataTable';
 import FilterPanel from '../components/filters/FilterPanel';
 import useMetabaseData from '../hooks/useMetabaseData';
 
-const SLAMonitoring = () => {
-  // Filter state
+const SLAMonitoring = ({ startDate = null, endDate = null }) => {
+  // Local geographic filter state
   const [filters, setFilters] = useState({
     division: undefined,
     district: undefined,
     isp: undefined,
   });
 
-  // Fetch data from Metabase cards
+  // Merge global date range into every API call
+  const effectiveFilters = React.useMemo(() => ({
+    ...filters,
+    ...(startDate ? { start_date: startDate } : {}),
+    ...(endDate   ? { end_date:   endDate   } : {}),
+  }), [filters, startDate, endDate]);
+
+  // Fetch data from Metabase cards (cards 79-80 support date filter; 76-78 do not)
   const { data: complianceData, loading: loading76, error: error76 } = useMetabaseData(76, filters);
-  const { data: criticalData, loading: loading77, error: error77 } = useMetabaseData(77, filters);
-  const { data: ispsBelowData, loading: loading78, error: error78 } = useMetabaseData(78, filters);
-  const { data: packageData, loading: loading79, error: error79 } = useMetabaseData(79, filters);
-  const { data: trendData, loading: loading80, error: error80 } = useMetabaseData(80, filters);
+  const { data: criticalData,   loading: loading77, error: error77 } = useMetabaseData(77, filters);
+  const { data: ispsBelowData,  loading: loading78, error: error78 } = useMetabaseData(78, filters);
+  const { data: packageData,    loading: loading79, error: error79 } = useMetabaseData(79, effectiveFilters);
+  const { data: trendData,      loading: loading80, error: error80 } = useMetabaseData(80, effectiveFilters);
   // Card 81 moved to R2.2 Regional Analysis tab
 
   // Combine loading and error states

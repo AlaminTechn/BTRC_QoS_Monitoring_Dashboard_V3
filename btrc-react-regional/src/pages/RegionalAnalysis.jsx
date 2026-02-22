@@ -21,8 +21,8 @@ import {
   DISTRICT_NAME_MAPPING,
 } from '../utils/dataTransform';
 
-const RegionalAnalysis = () => {
-  // Filter state
+const RegionalAnalysis = ({ startDate = null, endDate = null }) => {
+  // Local geographic filter state
   const [filters, setFilters] = useState({
     division: undefined,
     district: undefined,
@@ -33,29 +33,32 @@ const RegionalAnalysis = () => {
   const [divisionGeoJSON, setDivisionGeoJSON] = useState(null);
   const [districtGeoJSON, setDistrictGeoJSON] = useState(null);
 
-  // Fetch violation data (Card 87) for division-level aggregation
-  // Data format: [Division, District, Total, Critical, High, Medium, Low]
+  // Merge global date range into every API call that supports it
+  const effectiveFilters = React.useMemo(() => ({
+    ...filters,
+    ...(startDate ? { start_date: startDate } : {}),
+    ...(endDate   ? { end_date:   endDate   } : {}),
+  }), [filters, startDate, endDate]);
+
+  // Fetch violation data (Card 87) — supports date filter
   const {
     data: violationData,
     loading: violationLoading,
     error: violationError,
-  } = useMetabaseData(87, filters);
+  } = useMetabaseData(87, effectiveFilters);
 
-  // Fetch district ranking data (Card 80) for district table
-  // Data format: [Division, District, Avg Download, Avg Upload, Avg Latency, Availability %, ISP Count, PoP Count]
+  // Fetch district ranking data (Card 80) — supports date filter
   const {
     data: districtRankingData,
     loading: districtLoading,
     error: districtError,
-  } = useMetabaseData(80, filters);
+  } = useMetabaseData(80, effectiveFilters);
 
-  // Fetch ISP Performance data from Card 81 (R2.3 ISP Performance by Area)
-  // Data format: [Division, District, ISP, License Category, PoP Count,
-  //               Avg Download, Avg Upload, Avg Latency, Availability %, Violations]
+  // Fetch ISP Performance data (Card 81) — supports date filter
   const {
     data: ispPerformanceData,
     loading: ispPerformanceLoading,
-  } = useMetabaseData(81, filters);
+  } = useMetabaseData(81, effectiveFilters);
 
   // Aggregate data for divisions (sum by division)
   const divisionData = React.useMemo(() => {

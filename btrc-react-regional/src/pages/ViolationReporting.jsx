@@ -3,13 +3,40 @@
  * Cards 82-87: KPI scalars, Detail Table, Trend Chart, District Breakdown
  */
 
-import React from 'react';
-import { Row, Col, Card, Tag, Spin, Alert } from 'antd';
-import { WarningOutlined, CheckCircleOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
+import React, { useState } from 'react';
+import { Row, Col, Card, Tag, Spin, Alert, Button, Breadcrumb } from 'antd';
+import { WarningOutlined, CheckCircleOutlined, ExclamationCircleOutlined, ArrowLeftOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import ReactECharts from 'echarts-for-react';
 import ScalarCard from '../components/charts/ScalarCard';
 import DataTable from '../components/charts/DataTable';
 import useMetabaseData from '../hooks/useMetabaseData';
+
+// Chart colors matching Metabase (assigned alphabetically by Metabase's default palette)
+const SEVERITY_CHART_COLORS = {
+  CRITICAL: '#22c55e',  // green  (matches Metabase CRITICAL=green)
+  HIGH:     '#7c3aed',  // purple (matches Metabase HIGH=purple)
+  LOW:      '#eab308',  // yellow (matches Metabase LOW=yellow)
+  MEDIUM:   '#f97316',  // orange/salmon (matches Metabase MEDIUM=pink-orange)
+};
+
+// Parse date from ISO string "2025-12-01T00:00:00+06:00" → "2025-12-01"
+const parseToDateStr = (dateStr) => {
+  if (!dateStr) return null;
+  if (dateStr.includes('T')) return dateStr.split('T')[0];
+  return dateStr;
+};
+
+// Format date for chart X-axis label "2025-12-01" → "December 1, 2025"
+const formatDateLabel = (dateStr) => {
+  const d = parseToDateStr(dateStr);
+  if (!d) return dateStr;
+  try {
+    const date = new Date(d + 'T12:00:00'); // Use noon to avoid timezone offset issues
+    return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  } catch {
+    return d;
+  }
+};
 
 // Severity color mapping
 const SEVERITY_COLORS = {
@@ -47,14 +74,28 @@ const StatusTag = ({ status }) => {
   return <Tag color={color}>{status}</Tag>;
 };
 
-const ViolationReporting = () => {
+const ViolationReporting = ({ startDate = null, endDate = null }) => {
+  // Drill-down state: null = daily view, 'YYYY-MM-DD' = hourly view for that day
+  const [selectedDay, setSelectedDay] = useState(null);
+
+  // Reset hourly drill-down when date range changes
+  React.useEffect(() => {
+    setSelectedDay(null);
+  }, [startDate, endDate]);
+
+  // Date filter params (all cards 82-87 support start_date/end_date)
+  const dateFilters = React.useMemo(() => ({
+    ...(startDate ? { start_date: startDate } : {}),
+    ...(endDate   ? { end_date:   endDate   } : {}),
+  }), [startDate, endDate]);
+
   // --- Data Hooks ---
-  const { data: pendingData,  loading: pendingLoading  } = useMetabaseData(82, {});
-  const { data: disputedData, loading: disputedLoading } = useMetabaseData(83, {});
-  const { data: resolvedData, loading: resolvedLoading } = useMetabaseData(84, {});
-  const { data: detailData,   loading: detailLoading   } = useMetabaseData(85, {});
-  const { data: trendData,    loading: trendLoading    } = useMetabaseData(86, {});
-  const { data: districtData, loading: districtLoading } = useMetabaseData(87, {});
+  const { data: pendingData,  loading: pendingLoading  } = useMetabaseData(82, dateFilters);
+  const { data: disputedData, loading: disputedLoading } = useMetabaseData(83, dateFilters);
+  const { data: resolvedData, loading: resolvedLoading } = useMetabaseData(84, dateFilters);
+  const { data: detailData,   loading: detailLoading   } = useMetabaseData(85, dateFilters);
+  const { data: trendData,    loading: trendLoading    } = useMetabaseData(86, dateFilters);
+  const { data: districtData, loading: districtLoading } = useMetabaseData(87, dateFilters);
 
   // --- KPI Values ---
   // Cards 82, 83, 84 return scalar: rows = [[value]]
@@ -210,91 +251,146 @@ const ViolationReporting = () => {
     }));
   }, [detailData]);
 
-  // --- Card 86: Violation Trend by Severity (stacked bar) ---
-  // Rows: [Date, Severity, Count] → transform to grouped by date
-  const trendChartOption = React.useMemo(() => {
-    if (!trendData?.rows || trendData.rows.length === 0) return null;
+  // --- Card 86: Daily violation trend (grouped bars, matching Metabase) ---
+  // Rows: [Date, Severity, Count] → grouped bar chart per date
+  const dailyTrendOption = React.useMemo(() => {
+    if (!trendData?.rows?.length) return null;
 
-    const rows = trendData.rows;
+    // Normalize all dates to YYYY-MM-DD (handles ISO timestamps)
+    const rows = trendData.rows.map((r) => [parseToDateStr(r[0]), r[1], r[2]]);
 
-    // Get unique dates (sorted)
     const dates = [...new Set(rows.map((r) => r[0]))].sort();
-
-    // Get unique severities (preserve order: CRITICAL, HIGH, MEDIUM, LOW)
     const severityOrder = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
-    const severities = severityOrder.filter((s) =>
-      rows.some((r) => r[1] === s)
-    );
+    const severities = severityOrder.filter((s) => rows.some((r) => r[1] === s));
 
-    // Build series data: for each severity, array of counts per date
-    const seriesColors = {
-      CRITICAL: '#ef4444',
-      HIGH:     '#f97316',
-      MEDIUM:   '#eab308',
-      LOW:      '#22c55e',
-    };
-
-    const series = severities.map((sev) => {
-      const values = dates.map((date) => {
+    const series = severities.map((sev) => ({
+      name: sev,
+      type: 'bar',
+      // NOT stacked → grouped bars matching Metabase
+      data: dates.map((date) => {
         const found = rows.find((r) => r[0] === date && r[1] === sev);
         return found ? found[2] : 0;
-      });
-      return {
-        name: sev,
-        type: 'bar',
-        stack: 'violations',
-        data: values,
-        itemStyle: { color: seriesColors[sev] },
-        emphasis: { focus: 'series' },
-      };
-    });
+      }),
+      itemStyle: { color: SEVERITY_CHART_COLORS[sev] },
+      emphasis: { focus: 'series' },
+    }));
 
     return {
       tooltip: {
         trigger: 'axis',
         axisPointer: { type: 'shadow' },
         formatter: (params) => {
-          let tooltip = `<strong>${params[0].axisValue}</strong><br/>`;
+          const dateLabel = formatDateLabel(dates[params[0]?.dataIndex]);
+          let tip = `<strong>${dateLabel}</strong><br/>`;
           params.forEach((p) => {
             if (p.value > 0) {
-              const color = seriesColors[p.seriesName] || p.color;
-              tooltip += `<span style="color:${color}">■</span> ${p.seriesName}: <strong>${p.value}</strong><br/>`;
+              tip += `<span style="color:${SEVERITY_CHART_COLORS[p.seriesName] || p.color}">■</span> ${p.seriesName}: <strong>${p.value}</strong><br/>`;
             }
           });
           const total = params.reduce((sum, p) => sum + (p.value || 0), 0);
-          tooltip += `<strong>Total: ${total}</strong>`;
-          return tooltip;
+          tip += `<span style="color:#666">Total: <strong>${total}</strong></span>`;
+          tip += `<br/><span style="color:#3b82f6;font-size:11px">Click to see hourly breakdown</span>`;
+          return tip;
         },
       },
       legend: {
         data: severities,
         bottom: 5,
+        textStyle: { fontSize: 12 },
       },
-      grid: {
-        left: '3%',
-        right: '4%',
-        bottom: '15%',
-        top: '3%',
-        containLabel: true,
-      },
+      grid: { left: '3%', right: '4%', bottom: '20%', top: '5%', containLabel: true },
       xAxis: {
         type: 'category',
+        // Store raw dates for click handler, format labels for display
         data: dates,
+        name: 'Date',
+        nameLocation: 'middle',
+        nameGap: 55,
         axisLabel: {
           rotate: 45,
           fontSize: 11,
-          formatter: (val) => val.slice(5), // Show MM-DD only
+          formatter: (val) => formatDateLabel(val), // "December 1, 2025"
         },
       },
       yAxis: {
         type: 'value',
-        name: 'Violations',
+        name: 'Count',
         nameTextStyle: { fontSize: 12 },
         minInterval: 1,
       },
       series,
     };
   }, [trendData]);
+
+  // --- Hourly drill-down: derive from Card 85 (Detected At timestamps) ---
+  const hourlyTrendOption = React.useMemo(() => {
+    if (!selectedDay || !detailData?.rows?.length) return null;
+
+    // Filter Card 85 rows for the selected day
+    const dayRows = detailData.rows.filter((row) => {
+      const detectedAt = row[7];
+      return detectedAt && parseToDateStr(detectedAt) === selectedDay;
+    });
+
+    if (dayRows.length === 0) return null;
+
+    // Build hour buckets (00:00 → 23:00)
+    const hourMap = {};
+    dayRows.forEach((row) => {
+      const severity = row[3];
+      try {
+        const d = new Date(row[7]);
+        const hour = `${d.getHours().toString().padStart(2, '0')}:00`;
+        if (!hourMap[hour]) hourMap[hour] = {};
+        hourMap[hour][severity] = (hourMap[hour][severity] || 0) + 1;
+      } catch { /* skip invalid dates */ }
+    });
+
+    const activeHours = Object.keys(hourMap).sort();
+    const severityOrder = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
+    const severities = severityOrder.filter((s) => dayRows.some((r) => r[3] === s));
+
+    const series = severities.map((sev) => ({
+      name: sev,
+      type: 'bar',
+      data: activeHours.map((h) => hourMap[h]?.[sev] || 0),
+      itemStyle: { color: SEVERITY_CHART_COLORS[sev] },
+      emphasis: { focus: 'series' },
+    }));
+
+    return {
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: { type: 'shadow' },
+        formatter: (params) => {
+          let tip = `<strong>${formatDateLabel(selectedDay)} ${params[0]?.axisValue}</strong><br/>`;
+          params.forEach((p) => {
+            if (p.value > 0) {
+              tip += `<span style="color:${SEVERITY_CHART_COLORS[p.seriesName] || p.color}">■</span> ${p.seriesName}: <strong>${p.value}</strong><br/>`;
+            }
+          });
+          return tip;
+        },
+      },
+      legend: { data: severities, bottom: 5, textStyle: { fontSize: 12 } },
+      grid: { left: '3%', right: '4%', bottom: '20%', top: '8%', containLabel: true },
+      xAxis: {
+        type: 'category',
+        data: activeHours,
+        name: 'Hour',
+        nameLocation: 'middle',
+        nameGap: 35,
+        axisLabel: { rotate: 45, fontSize: 11 },
+      },
+      yAxis: {
+        type: 'value',
+        name: 'Count',
+        nameTextStyle: { fontSize: 12 },
+        minInterval: 1,
+      },
+      series,
+    };
+  }, [selectedDay, detailData]);
 
   // --- Card 87: Violations by District table ---
   // Columns: Division, District, Total, Critical, High, Medium, Low
@@ -470,23 +566,83 @@ const ViolationReporting = () => {
 
       {/* Row 3: Trend Chart (86) + District Breakdown (87) */}
       <Row gutter={[16, 16]}>
-        {/* Card 86: Violation Trend by Severity */}
+        {/* Card 86: Violation Trend by Severity with drill-down */}
         <Col xs={24} lg={12}>
           <Card
-            title="R3.5 Violation Trend by Severity"
+            title={
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span>
+                  {selectedDay ? (
+                    <>
+                      <ClockCircleOutlined style={{ marginRight: 6, color: '#3b82f6' }} />
+                      R3.5 Hourly Breakdown — {formatDateLabel(selectedDay)}
+                    </>
+                  ) : (
+                    'R3.5 Violation Trend by Severity'
+                  )}
+                </span>
+                {selectedDay && (
+                  <Button
+                    size="small"
+                    icon={<ArrowLeftOutlined />}
+                    onClick={() => setSelectedDay(null)}
+                    style={{ marginLeft: 16 }}
+                  >
+                    Back to Daily
+                  </Button>
+                )}
+              </div>
+            }
             bordered={false}
             style={{ height: '100%' }}
+            extra={
+              !selectedDay && (
+                <span style={{ fontSize: 11, color: '#888' }}>
+                  Click a bar to drill into hourly data
+                </span>
+              )
+            }
           >
-            {trendLoading ? (
+            {trendLoading || (selectedDay && detailLoading) ? (
               <div style={{ textAlign: 'center', padding: '80px 0' }}>
                 <Spin size="large" />
               </div>
-            ) : trendChartOption ? (
+            ) : selectedDay ? (
+              // Hourly view after clicking a day
+              hourlyTrendOption ? (
+                <ReactECharts
+                  option={hourlyTrendOption}
+                  style={{ height: '380px', width: '100%' }}
+                  notMerge={true}
+                  lazyUpdate={true}
+                />
+              ) : (
+                <Alert
+                  message={`No hourly data for ${formatDateLabel(selectedDay)}`}
+                  description="No violations were recorded in the detail table for this date."
+                  type="info"
+                  showIcon
+                />
+              )
+            ) : dailyTrendOption ? (
+              // Daily view (default)
               <ReactECharts
-                option={trendChartOption}
+                option={dailyTrendOption}
                 style={{ height: '380px', width: '100%' }}
                 notMerge={true}
                 lazyUpdate={true}
+                onEvents={{
+                  click: (params) => {
+                    // params.dataIndex = index in the dates array
+                    if (params.componentType === 'series') {
+                      const rawDates = [...new Set(
+                        trendData.rows.map((r) => parseToDateStr(r[0]))
+                      )].sort();
+                      const clickedDate = rawDates[params.dataIndex];
+                      if (clickedDate) setSelectedDay(clickedDate);
+                    }
+                  },
+                }}
               />
             ) : (
               <Alert message="No trend data available" type="info" showIcon />

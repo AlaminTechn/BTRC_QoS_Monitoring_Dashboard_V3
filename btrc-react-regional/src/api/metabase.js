@@ -118,7 +118,7 @@ class MetabaseAPI {
 
   /**
    * Format parameters for Metabase API
-   * @param {object} params - Filter parameters {division: 'Dhaka', district: 'Gazipur'}
+   * @param {object} params - Filter parameters {division, district, isp, start_date, end_date}
    * @returns {object} Formatted parameters
    */
   formatParameters(params) {
@@ -126,10 +126,13 @@ class MetabaseAPI {
       return {};
     }
 
+    // Date parameter keys require type 'date/single'; text filters use 'category'
+    const DATE_PARAMS = new Set(['start_date', 'end_date']);
+
     const parameters = Object.entries(params)
       .filter(([_, value]) => value !== null && value !== undefined && value !== '')
       .map(([key, value]) => ({
-        type: 'category',
+        type: DATE_PARAMS.has(key) ? 'date/single' : 'category',
         target: ['variable', ['template-tag', key]],
         value: value,
       }));

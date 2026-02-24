@@ -4,6 +4,7 @@
 # Data files
 /poc_data_v2.8/
 /geodata/
+/dummy_data/
 
 # Python
 __pycache__/
